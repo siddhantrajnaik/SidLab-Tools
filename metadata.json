@@ -1,0 +1,5 @@
+{
+  "name": "Sidlab Tools",
+  "description": "A zero-dependency, client-side scientific suite for laboratory calculations and dynamic protocol generation. Optimized for static hosting environments.",
+  "requestFramePermissions": []
+}
