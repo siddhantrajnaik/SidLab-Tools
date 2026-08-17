@@ -48,7 +48,31 @@ const NN_PARAMS: Record<string, { dH: number; dS: number }> = {
 const NN_INIT_GC = { dH: 0.1, dS: -2.8 };
 const NN_INIT_AT = { dH: 2.3, dS: 4.1 };
 
-const DEFAULT_CONC_NA_MM = 50;
+// Buffer conditions. The defaults describe a standard PCR: 50 mM monovalent cation,
+// 1.5 mM Mg2+ (what Q5/Phusion HF buffers supply at 1x) and 200 uM of each dNTP.
+interface SaltConditions {
+    monovalentMM: number; // Na+ / K+
+    mgMM: number;         // Mg2+
+    dNTPsMM: number;      // total dNTPs
+}
+
+const DEFAULT_SALT: SaltConditions = { monovalentMM: 50, mgMM: 1.5, dNTPsMM: 0.8 };
+
+/**
+ * Effective monovalent cation concentration in mol/L.
+ *
+ * Mg2+ stabilises the duplex far more than monovalent cations do, and PCR buffers always
+ * contain it, so ignoring it puts the predicted Tm several degrees low. dNTPs chelate Mg2+
+ * roughly 1:1, so only the free Mg2+ counts. The remainder is converted to a monovalent
+ * equivalent with the empirical relation [MVC] = 3.795 * sqrt([Mg2+]) (von Ahsen et al.,
+ * valid below 8 mM Mg2+ — the same conversion Primer3 uses as 120 * sqrt(mM)).
+ *
+ * Ref: von Ahsen, Wittwer & Schütz, Brief Bioinform 12(5):514-517 (2011), Eq. 2.
+ */
+const effectiveMonovalent = (salt: SaltConditions): number => {
+    const freeMgM = Math.max(0, salt.mgMM - salt.dNTPsMM) / 1000;
+    return salt.monovalentMM / 1000 + 3.795 * Math.sqrt(freeMgM);
+};
 
 // --- Core Algorithms ---
 const cleanSequence = (seq: string): string => seq.replace(/[^a-zA-Z]/g, '').toUpperCase();
@@ -60,7 +84,7 @@ const getComplement = (base: string) => {
 
 const reverseComplement = (seq: string) => seq.split('').reverse().map(getComplement).join('');
 
-const calculatePrimerProps = (rawSeq: string, primerConcNm: number): PrimerResult => {
+const calculatePrimerProps = (rawSeq: string, primerConcNm: number, salt: SaltConditions = DEFAULT_SALT): PrimerResult => {
     const cleanSeq = cleanSequence(rawSeq);
     if (!cleanSeq) return { seq: rawSeq, cleanSeq: '', length: 0, gc: 0, tmBasic: 0, tmNN: 0, molecularWeight: 0, isValid: false };
 
@@ -94,11 +118,26 @@ const calculatePrimerProps = (rawSeq: string, primerConcNm: number): PrimerResul
         return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Primer concentration must be > 0 nM' };
     }
 
-    const saltCorr = 16.6 * Math.log10(DEFAULT_CONC_NA_MM / 1000);
+    // Salt correction. The SantaLucia parameters above are for 1 M NaCl; the effect of
+    // running at PCR salt is entropic, so it is applied to dS rather than added to Tm:
+    //     dS[salt] = dS[1 M NaCl] + 0.368 * (N - 1) * ln([MVC])
+    // This is the correction recommended for use when Mg2+ is present (von Ahsen et al.,
+    // Brief Bioinform 12(5):514-517, 2011, Eq. 1). The older 16.6 * log10([Na+]) term added
+    // straight onto Tm ignores Mg2+ entirely and reads several degrees low for PCR primers.
+    const mvc = effectiveMonovalent(salt);
+    if (!(mvc > 0)) {
+        return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Salt concentration must be > 0' };
+    }
+    const dSsalt = dS + 0.368 * (length - 1) * Math.log(mvc);
+
     const R = 1.987;
-    const Ct = primerConcNm * 1e-9;
-    const term = R * Math.log(Ct / 4);
-    const tmNN = ((dH * 1000) / (dS + term)) - 273.15 + saltCorr;
+    // For a non-self-complementary duplex whose two strands are at equal concentration C,
+    // the total strand concentration is 2C, so the CT/4 term of the van't Hoff equation
+    // becomes C/2. The value entered here is the concentration of each primer (the usual
+    // way a PCR is specified), not the sum of both strands.
+    const k = (primerConcNm * 1e-9) / 2;
+    const term = R * Math.log(k);
+    const tmNN = ((dH * 1000) / (dSsalt + term)) - 273.15;
 
     if (!isFinite(tmNN)) {
         return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Tm could not be computed for this sequence' };
@@ -115,7 +154,8 @@ const designPrimers = (
         minTm: number, maxTm: number,
         optTm: number
     },
-    primerConcNm: number
+    primerConcNm: number,
+    salt: SaltConditions
 ): PrimerPair[] => {
     const seq = cleanSequence(template);
     const len = seq.length;
@@ -129,7 +169,7 @@ const designPrimers = (
         for (let l = config.minLen; l <= config.maxLen; l++) {
             if (i + l > len) break;
             const sub = seq.substring(i, i + l);
-            const props = calculatePrimerProps(sub, primerConcNm);
+            const props = calculatePrimerProps(sub, primerConcNm, salt);
             if (props.isValid && props.tmNN >= (config.minTm - 5) && props.tmNN <= (config.maxTm + 5)) {
                 forwardCandidates.push({ ...props, start: i, end: i + l - 1, strand: 'sense' });
             }
@@ -143,7 +183,7 @@ const designPrimers = (
             const end = i;
             const templateSegment = seq.substring(start, end + 1);
             const primerSeq = reverseComplement(templateSegment);
-            const props = calculatePrimerProps(primerSeq, primerConcNm);
+            const props = calculatePrimerProps(primerSeq, primerConcNm, salt);
             if (props.isValid && props.tmNN >= (config.minTm - 5) && props.tmNN <= (config.maxTm + 5)) {
                 reverseCandidates.push({ ...props, start: start, end: end, strand: 'antisense' });
             }
@@ -240,17 +280,30 @@ const PrimerAnalysis: React.FC = () => {
     // Shared Config
     const [polymerase, setPolymerase] = useState<Polymerase>('q5');
     const [primerConc, setPrimerConc] = useState<number>(500);
+    const [salt, setSalt] = useState<SaltConditions>(DEFAULT_SALT);
 
     // Logic
-    const fwd = useMemo(() => calculatePrimerProps(fwdInput, primerConc), [fwdInput, primerConc]);
-    const rev = useMemo(() => calculatePrimerProps(revInput, primerConc), [revInput, primerConc]);
+    const fwd = useMemo(() => calculatePrimerProps(fwdInput, primerConc, salt), [fwdInput, primerConc, salt]);
+    const rev = useMemo(() => calculatePrimerProps(revInput, primerConc, salt), [revInput, primerConc, salt]);
     const analysisTmDiff = fwd.isValid && rev.isValid ? Math.abs(fwd.tmNN - rev.tmNN) : 0;
     const analysisTa = useMemo(() => {
         if (!fwd.isValid || !rev.isValid) return null;
-        const minTm = Math.min(fwd.tmNN, rev.tmNN);
-        if (polymerase === 'q5') return Math.floor(minTm);
-        if (polymerase === 'phusion') return Math.floor(minTm + 3);
-        return Math.floor(minTm - 5);
+        // Both rules are defined against the *lower* Tm primer.
+        const limiting = fwd.tmNN <= rev.tmNN ? fwd : rev;
+        const minTm = limiting.tmNN;
+
+        // NEB Q5 protocol (M0491/M0492): anneal 3 degC above the Tm of the lower Tm
+        // primer, to a maximum of 72 degC.
+        if (polymerase === 'q5') return Math.min(72, Math.round(minTm + 3));
+
+        // Thermo/NEB Phusion: Ta = Tm + 3 for primers longer than 20 nt, Ta = Tm for
+        // primers of 20 nt or shorter, again capped at 72 degC.
+        if (polymerase === 'phusion') {
+            return Math.min(72, Math.round(minTm + (limiting.length > 20 ? 3 : 0)));
+        }
+
+        // Standard Taq: the long-standing Tm - 5 degC rule of thumb.
+        return Math.round(minTm - 5);
     }, [fwd, rev, polymerase]);
 
     const handleDesign = useCallback(async () => {
@@ -259,12 +312,12 @@ const PrimerAnalysis: React.FC = () => {
         setHasSearched(true);
         setDesignResults([]);
         setTimeout(() => {
-            const pairs = designPrimers(templateInput, designConfig, primerConc);
+            const pairs = designPrimers(templateInput, designConfig, primerConc, salt);
             setDesignResults(pairs);
             if (pairs.length > 0) setSelectedPairId(pairs[0].id);
             setIsDesigning(false);
         }, 50);
-    }, [templateInput, designConfig, primerConc]);
+    }, [templateInput, designConfig, primerConc, salt]);
 
     const selectedPair = designResults.find(p => p.id === selectedPairId);
 
@@ -480,7 +533,12 @@ const PrimerAnalysis: React.FC = () => {
                             </div>
                         </div>
                         <p className="text-xs text-slate-500 ml-1">
-                            Affects Annealing Temp: {polymerase === 'q5' ? 'Ta = Tm' : polymerase === 'phusion' ? 'Ta = Tm + 3°C' : 'Ta = Tm - 5°C'}
+                            Annealing rule: {polymerase === 'q5'
+                                ? 'Ta = Tm + 3°C (max 72°C)'
+                                : polymerase === 'phusion'
+                                    ? 'Ta = Tm + 3°C for primers > 20 nt, else Tm (max 72°C)'
+                                    : 'Ta = Tm − 5°C'}
+                            {' '}— applied to the lower-Tm primer.
                         </p>
                     </div>
                     <Input
@@ -490,6 +548,38 @@ const PrimerAnalysis: React.FC = () => {
                         placeholder="500"
                         rightElement={<span className="text-xs font-bold text-slate-500">nM</span>}
                     />
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                    <div className="flex items-baseline justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-slate-900">Buffer Composition</h4>
+                        <span className="text-xs text-slate-400">Defaults match a standard 1× HF buffer</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Input
+                            label="Monovalent (Na⁺/K⁺)"
+                            value={salt.monovalentMM}
+                            onChange={(e) => setSalt(s => ({ ...s, monovalentMM: safeNum(e.target.value) }))}
+                            rightElement={<span className="text-xs font-bold text-slate-500">mM</span>}
+                        />
+                        <Input
+                            label="Mg²⁺"
+                            value={salt.mgMM}
+                            onChange={(e) => setSalt(s => ({ ...s, mgMM: safeNum(e.target.value) }))}
+                            rightElement={<span className="text-xs font-bold text-slate-500">mM</span>}
+                        />
+                        <Input
+                            label="dNTPs (total)"
+                            value={salt.dNTPsMM}
+                            onChange={(e) => setSalt(s => ({ ...s, dNTPsMM: safeNum(e.target.value) }))}
+                            rightElement={<span className="text-xs font-bold text-slate-500">mM</span>}
+                        />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2 ml-1">
+                        Free Mg²⁺ is converted to a monovalent equivalent, giving an effective{' '}
+                        <span className="font-mono font-semibold text-slate-700">{(effectiveMonovalent(salt) * 1000).toFixed(0)} mM</span>.
+                        Mg²⁺ raises Tm substantially — omitting it reads several °C low.
+                    </p>
                 </div>
             </Card>
 
@@ -552,8 +642,12 @@ const PrimerAnalysis: React.FC = () => {
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm p-3 bg-white rounded-xl border border-slate-100">
+                                        <span className="text-slate-600">Thermodynamics</span>
+                                        <span className="text-slate-900">SantaLucia 1998 (NN)</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm p-3 bg-white rounded-xl border border-slate-100">
                                         <span className="text-slate-600">Salt Correction</span>
-                                        <span className="text-slate-900">SantaLucia 1998</span>
+                                        <span className="text-slate-900">Entropic + Mg²⁺ equiv.</span>
                                     </div>
                                 </div>
 

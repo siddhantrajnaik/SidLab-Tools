@@ -22,21 +22,22 @@ const PRESETS = [
   { label: 'Midi Gel (1.0mm)', resolving: 20.0, stacking: 8.0 },
 ];
 
-const calculateForward = (totalVol: number, targetPercent: number, stockPercent: number): GelRecipe => {
+const calculateForward = (totalVol: number, targetPercent: number, stockPercent: number, isStacking: boolean): GelRecipe => {
   if (totalVol <= 0) return { water: 0, buffer: 0, acrylamide: 0, sds: 0, aps: 0, temed: 0, total: 0 };
-  
-  // Standard Laemmli Ratios
-  // Acrylamide Volume = (Target % / Stock %) * Total
-  // Buffer: 1/4 of total (1.5M Tris pH 8.8 for Resolving, 0.5M Tris pH 6.8 for Stacking)
-  // SDS: 10% stock -> 0.1% final => 1/100 of total
-  // APS: 10% stock -> ~0.1% final => 1/100 of total (Standard formulation)
-  // TEMED: ~0.1% or 1uL per mL => 1/1000 of total
-  
+
+  // Ratios follow Bio-Rad's handcasting table (Bulletin 6201, Table 2), which specifies
+  // per 15 mL of gel solution: 3.75 mL Tris (1/4), 150 uL 10% SDS (1/100),
+  // 75 uL 10% APS (1/200), and TEMED at 7.5 uL for the resolving gel (1/2000) or
+  // 15 uL for the 4% stacking gel (1/1000). The stacking gel gets twice the TEMED
+  // because its low acrylamide percentage polymerises more slowly.
+  //   Acrylamide volume = (Target % / Stock %) * Total
+  //   Buffer: 1.5 M Tris pH 8.8 (resolving) or 0.5 M Tris pH 6.8 (stacking)
+
   const acrylamide = (targetPercent / stockPercent) * totalVol;
   const buffer = totalVol / 4;
   const sds = totalVol / 100;
-  const aps = totalVol / 100;
-  const temed = totalVol / 1000;
+  const aps = totalVol / 200;
+  const temed = isStacking ? totalVol / 1000 : totalVol / 2000;
   
   // Water is the remainder
   const water = totalVol - (acrylamide + buffer + sds + aps + temed);
@@ -80,8 +81,8 @@ const SdsPage: React.FC = () => {
     setStackVol(PRESETS[presetIdx].stacking);
   };
 
-  const resRecipe = calculateForward(safeNum(resVol), safeNum(resPercent), stockConc);
-  const stackRecipe = calculateForward(safeNum(stackVol), safeNum(stackPercent), stockConc);
+  const resRecipe = calculateForward(safeNum(resVol), safeNum(resPercent), stockConc, false);
+  const stackRecipe = calculateForward(safeNum(stackVol), safeNum(stackPercent), stockConc, true);
   
   const revResult = calculateReverse(safeNum(revAcrylVol), safeNum(revTotalVol), revStockConc);
 
@@ -226,7 +227,10 @@ const SdsPage: React.FC = () => {
                                     <td className="px-4 py-3 text-right font-mono">{(stackRecipe.aps * 1000).toFixed(0)} µL</td>
                                 </tr>
                                 <tr>
-                                    <td className="px-4 py-3 font-medium text-slate-700">TEMED</td>
+                                    <td className="px-4 py-3 font-medium text-slate-700">
+                                        TEMED
+                                        <div className="text-[10px] text-slate-400 font-normal">Stacking gel gets 2× (slower to set)</div>
+                                    </td>
                                     <td className="px-4 py-3 text-right font-mono bg-teal-50/20">{(resRecipe.temed * 1000).toFixed(1)} µL</td>
                                     <td className="px-4 py-3 text-right font-mono">{(stackRecipe.temed * 1000).toFixed(1)} µL</td>
                                 </tr>
