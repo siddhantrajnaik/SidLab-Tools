@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { DilutionIcon, MolarityIcon, PercentIcon, PhIcon, ProteinIcon, ProtocolsIcon, OopsIcon, PrimerIcon, GelIcon, CellIcon, LogIcon, TimerIcon, FastaIcon, ScissorsIcon, IllustratorIcon } from '../components/ScienceIcons';
+import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt } from '../components/ToolArt';
+import { BrandMark } from '../components/ToolArt';
+import type { ArtProps } from '../components/ToolArt';
 import { AdBanner } from '../components/AdBanner';
 
 interface Tool {
@@ -9,8 +12,9 @@ interface Tool {
   title: string;
   description: string;
   path: string;
-  icon: React.ElementType;
-  image?: string; // Optional path to an image file (e.g., '/icons/dilution.png')
+  icon: React.ElementType;            // small monochrome mark, used in the corner badge
+  art: React.FC<ArtProps>;            // full-colour illustration shown on the card
+  image?: string;                     // optional override: path to a bitmap in /public
   color: 'blue' | 'emerald' | 'purple' | 'pink' | 'indigo' | 'orange' | 'red' | 'cyan' | 'teal' | 'lime' | 'violet' | 'slate';
   keywords: string[];
 }
@@ -22,6 +26,7 @@ const TOOLS: Tool[] = [
     description: 'Essential C1V1 = C2V2 calc',
     path: '/dilution',
     icon: DilutionIcon,
+    art: DilutionArt,
     color: 'blue',
     keywords: ['dilution', 'concentration', 'c1v1', 'stock', 'solution', 'volume']
   },
@@ -31,6 +36,7 @@ const TOOLS: Tool[] = [
     description: 'Mass from MW & Conc',
     path: '/molarity',
     icon: MolarityIcon,
+    art: MolarityArt,
     color: 'emerald',
     keywords: ['molarity', 'mass', 'molecular weight', 'mw', 'concentration', 'mole']
   },
@@ -40,6 +46,7 @@ const TOOLS: Tool[] = [
     description: 'Scientific diagram generator',
     path: '/ai-image',
     icon: IllustratorIcon,
+    art: IllustratorArt,
     color: 'violet',
     keywords: ['ai', 'image', 'generator', 'gemini', 'diagram', 'drawing']
   },
@@ -49,6 +56,7 @@ const TOOLS: Tool[] = [
     description: 'Find cut sites & fragments',
     path: '/restriction',
     icon: ScissorsIcon,
+    art: ScissorsArt,
     color: 'pink',
     keywords: ['restriction', 'enzyme', 'digest', 'cut', 'fragment', 'cloning', 'plasmid']
   },
@@ -58,6 +66,7 @@ const TOOLS: Tool[] = [
     description: 'Format & validate sequences',
     path: '/fasta',
     icon: FastaIcon,
+    art: FastaArt,
     color: 'slate',
     keywords: ['fasta', 'dna', 'protein', 'sequence', 'format', 'clean', 'wrap']
   },
@@ -67,6 +76,7 @@ const TOOLS: Tool[] = [
     description: 'Stopwatch, Interval & Timer',
     path: '/timer',
     icon: TimerIcon,
+    art: TimerArt,
     color: 'cyan',
     keywords: ['timer', 'stopwatch', 'countdown', 'interval', 'clock', 'time']
   },
@@ -76,6 +86,7 @@ const TOOLS: Tool[] = [
     description: 'Log, Ln, Antilog & pKa',
     path: '/log',
     icon: LogIcon,
+    art: LogArt,
     color: 'violet',
     keywords: ['log', 'ln', 'exponent', 'pka', 'ph', 'math', 'kinetics']
   },
@@ -85,6 +96,7 @@ const TOOLS: Tool[] = [
     description: 'Hemocytometer & Viability',
     path: '/cellcount',
     icon: CellIcon,
+    art: CellArt,
     color: 'lime',
     keywords: ['cell', 'count', 'hemocytometer', 'neubauer', 'viability', 'trypan', 'titer']
   },
@@ -94,6 +106,7 @@ const TOOLS: Tool[] = [
     description: 'Acrylamide gel recipes',
     path: '/sds',
     icon: GelIcon,
+    art: GelArt,
     color: 'teal',
     keywords: ['sds', 'page', 'gel', 'electrophoresis', 'western', 'blot', 'acrylamide']
   },
@@ -103,6 +116,7 @@ const TOOLS: Tool[] = [
     description: 'Tm, GC%, and PCR Ta',
     path: '/primers',
     icon: PrimerIcon,
+    art: PrimerArt,
     color: 'cyan',
     keywords: ['primer', 'pcr', 'tm', 'melting', 'dna', 'sequence', 'annealing']
   },
@@ -112,6 +126,7 @@ const TOOLS: Tool[] = [
     description: 'w/v, v/v, w/w & density',
     path: '/percent',
     icon: PercentIcon,
+    art: PercentArt,
     color: 'orange',
     keywords: ['percent', 'mass', 'volume', 'density', 'w/v', 'solution']
   },
@@ -121,6 +136,7 @@ const TOOLS: Tool[] = [
     description: 'Acids, bases & buffers',
     path: '/ph',
     icon: PhIcon,
+    art: PhArt,
     color: 'pink',
     keywords: ['ph', 'buffer', 'acid', 'base', 'henderson', 'pka']
   },
@@ -130,6 +146,7 @@ const TOOLS: Tool[] = [
     description: 'A280 Beer-Lambert Law',
     path: '/protein',
     icon: ProteinIcon,
+    art: ProteinArt,
     color: 'indigo',
     keywords: ['protein', 'absorbance', 'a280', 'beer-lambert', 'extinction', 'uv']
   },
@@ -139,6 +156,7 @@ const TOOLS: Tool[] = [
     description: 'Fix mistake & error analysis',
     path: '/oops',
     icon: OopsIcon,
+    art: OopsArt,
     color: 'red',
     keywords: ['mistake', 'error', 'correction', 'fix', 'salvage', 'moi', 'seeding', 'overshoot']
   },
@@ -148,10 +166,29 @@ const TOOLS: Tool[] = [
     description: 'Dynamic step generation',
     path: '/protocols',
     icon: ProtocolsIcon,
+    art: ProtocolsArt,
     color: 'purple',
     keywords: ['protocol', 'pcr', 'buffer', 'western', 'steps', 'procedure', 'mix']
   }
 ];
+
+// Accent/tint pairs handed to the card artwork. These mirror the Tailwind 500 and 100
+// shades of each COLOR_MAP entry, spelled out because they are SVG fill/stroke values
+// rather than class names.
+const ART_PALETTE: Record<string, { accent: string; tint: string }> = {
+  blue:    { accent: '#3b82f6', tint: '#dbeafe' },
+  emerald: { accent: '#10b981', tint: '#d1fae5' },
+  purple:  { accent: '#a855f7', tint: '#f3e8ff' },
+  pink:    { accent: '#ec4899', tint: '#fce7f3' },
+  indigo:  { accent: '#6366f1', tint: '#e0e7ff' },
+  orange:  { accent: '#f97316', tint: '#ffedd5' },
+  red:     { accent: '#ef4444', tint: '#fee2e2' },
+  cyan:    { accent: '#06b6d4', tint: '#cffafe' },
+  teal:    { accent: '#14b8a6', tint: '#ccfbf1' },
+  lime:    { accent: '#84cc16', tint: '#ecfccb' },
+  violet:  { accent: '#8b5cf6', tint: '#ede9fe' },
+  slate:   { accent: '#64748b', tint: '#e2e8f0' },
+};
 
 const COLOR_MAP = {
   blue: {
@@ -243,7 +280,6 @@ const COLOR_MAP = {
 const Dashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
-  const [logoError, setLogoError] = useState(false);
 
   // Sync state with URL if it changes (e.g. from Layout search)
   useEffect(() => {
@@ -287,17 +323,9 @@ const Dashboard: React.FC = () => {
 
       {/* Hero Section */}
       <div className="text-center max-w-3xl mx-auto pt-2 pb-4">
-        {/* Branding Logo - Hidden if no file is found (no placeholder) */}
-        {!logoError && (
-            <div className="flex justify-center mb-6">
-                <img 
-                    src="/branding/logo.png" 
-                    alt="Lab Logo" 
-                    className="h-24 w-auto object-contain rounded-xl hover:scale-105 transition-transform duration-500"
-                    onError={() => setLogoError(true)}
-                />
-            </div>
-        )}
+        <div className="flex justify-center mb-6">
+            <BrandMark className="h-24 w-24 hover:scale-105 transition-transform duration-500" />
+        </div>
 
         <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight mb-6 leading-tight">
           Discover the World's<br/>Top <span className="text-slate-900">Lab Tools</span>
@@ -377,7 +405,7 @@ const Dashboard: React.FC = () => {
                                   {tool.image ? (
                                       <img src={tool.image} alt={tool.title} className="h-16 w-16 object-contain" />
                                   ) : (
-                                      <tool.icon className={`h-10 w-10 ${colors.iconMain}`} />
+                                      <tool.art {...ART_PALETTE[tool.color]} className="h-16 w-16" />
                                   )}
                               </div>
                           </div>

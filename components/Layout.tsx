@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { X, Search, Mail } from 'lucide-react';
 import { WhatsAppIcon } from './ScienceIcons';
 import { CookieConsent } from './CookieConsent';
+import { BrandMark } from './ToolArt';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,7 +12,6 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navSearch, setNavSearch] = useState('');
-  const [logoError, setLogoError] = useState(false);
   const navigate = useNavigate();
 
   const handleNavSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -59,19 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Logo area */}
             <div className="flex items-center flex-shrink-0 mr-6">
               <NavLink to="/" className="flex items-center group">
-                {/* Logo Image Logic: Tries to load /branding/logo.png, falls back to S icon */}
-                {!logoError ? (
-                   <img 
-                     src="/branding/logo.png" 
-                     alt="Logo" 
-                     className="h-10 w-auto mr-3 object-contain transition-transform group-hover:scale-105"
-                     onError={() => setLogoError(true)}
-                   />
-                ) : (
-                   <div className="bg-slate-900 text-white p-2 rounded-xl mr-3 transition-transform group-hover:rotate-12">
-                      <span className="font-logo font-bold text-xl">S</span>
-                   </div>
-                )}
+                <BrandMark className="h-10 w-10 mr-3 transition-transform group-hover:scale-105" />
                 <span className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight font-logo">Sidlab Tools</span>
               </NavLink>
             </div>
@@ -150,7 +138,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="border-t border-slate-100 py-12 bg-white print:hidden">
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-                <div className="h-8 w-8 bg-slate-100 rounded-full flex items-center justify-center mr-3 text-slate-900 font-logo font-bold">S</div>
+                <BrandMark className="h-8 w-8 mr-3" />
                 <span className="text-slate-900 font-bold font-logo">Sidlab Tools</span>
             </div>
             
