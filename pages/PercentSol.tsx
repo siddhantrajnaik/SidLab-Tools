@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Percent, Scale, Beaker, RefreshCw, Printer, Info, ArrowRight, AlertTriangle } from 'lucide-react';
-import { PageHeader, Card, Input, Button, Select } from '../components/UI';
+import { Percent, Beaker, RefreshCw, Printer, Info, AlertTriangle } from 'lucide-react';
+import { PageHeader, Card, Input, Button } from '../components/UI';
 import { safeNum, formatScientific, UNITS } from '../utils';
 
 type Mode = 'wv' | 'vv' | 'ww';
@@ -109,8 +109,7 @@ const PercentSol: React.FC = () => {
 
     // 2. Convert Total Solution to Base (g or mL)
     // Note: For calculation, we need the denominator in the specific unit type of the mode (Vol for w/v, v/v; Mass for w/w)
-    let totalBase = totalVal; 
-    let totalBaseIsMass = false;
+    let totalBase = totalVal;
 
     if (isTotalVolume(totalUnit)) {
         // Input is Volume
@@ -119,7 +118,6 @@ const PercentSol: React.FC = () => {
         if (mode === 'ww') {
             // Need Mass for w/w calculation
             totalBase = volInML * rho; // g
-            totalBaseIsMass = true;
         } else {
             totalBase = volInML; // mL
         }
@@ -129,7 +127,6 @@ const PercentSol: React.FC = () => {
         
         if (mode === 'ww') {
             totalBase = massInG;
-            totalBaseIsMass = true;
         } else {
             // Need Volume for w/v or v/v
             // Technically possible if they give mass of solution for w/v, but rare. 
@@ -157,7 +154,7 @@ const PercentSol: React.FC = () => {
     if (percent === '') {
         if (totalBase === 0) { setError('Total amount cannot be zero.'); return; }
         const p = (soluteBase / totalBase) * 100;
-        updates = { percent: parseFloat(p.toFixed(4)), lastSolvedFor: 'percent' };
+        updates = { percent: parseFloat(p.toPrecision(6)), lastSolvedFor: 'percent' };
     }
     // B. Solve for Solute
     else if (solute === '') {
@@ -231,6 +228,8 @@ const PercentSol: React.FC = () => {
   };
 
   const isWWVol = state.mode === 'ww' && isTotalVolume(state.totalUnit);
+  const isVolModeWithMass = state.mode !== 'ww' && isTotalMass(state.totalUnit);
+  const needsDensity = isWWVol || isVolModeWithMass;
 
   return (
     <div className="space-y-6">
@@ -325,15 +324,16 @@ const PercentSol: React.FC = () => {
                         />
 
                         {/* Density Input - Show if calculating w/w with volume, OR if unit types mismatch for w/v */}
-                        {isWWVol && (
+                        {needsDensity && (
                              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 animate-fadeIn">
                                  <div className="flex items-center mb-2">
                                      <Info size={14} className="text-blue-500 mr-2" />
                                      <span className="text-xs font-bold text-blue-700 uppercase">Density Required</span>
                                  </div>
                                  <p className="text-xs text-blue-600 mb-3">
-                                     You are calculating <b>% w/w</b> but specified a <b>Volume</b>. 
-                                     Density is needed to convert volume to mass.
+                                     {isWWVol
+                                       ? <>You are calculating <b>% w/w</b> but specified a <b>Volume</b>. Density is needed to convert volume to mass.</>
+                                       : <>You are calculating <b>% {state.mode === 'wv' ? 'w/v' : 'v/v'}</b> but specified a <b>Mass</b>. Density is needed to convert mass to volume.</>}
                                  </p>
                                  <Input 
                                     label="Density (ρ)" 
@@ -413,6 +413,11 @@ const PercentSol: React.FC = () => {
                              {isWWVol && (
                                  <p className="text-blue-600 mt-2">
                                      * Mass Solution = Vol ({state.total} {state.totalUnit}) × ρ ({state.density} g/mL)
+                                 </p>
+                             )}
+                             {isVolModeWithMass && (
+                                 <p className="text-blue-600 mt-2">
+                                     * Vol Solution = Mass ({state.total} {state.totalUnit}) ÷ ρ ({state.density} g/mL)
                                  </p>
                              )}
                         </div>

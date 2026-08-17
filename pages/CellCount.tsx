@@ -128,7 +128,7 @@ const CellCount: React.FC = () => {
                         />
                     </div>
                     <p className="text-xs text-slate-400 mt-3 leading-relaxed">
-                       * Standard Neubauer volume is 0.1 µL ($10^{-4}$ mL) per large square.
+                       * Standard Neubauer volume is 0.1 µL (10⁻⁴ mL) per large square.
                        <br/>
                        * Dilution Factor 2 means 1 part cells + 1 part dye.
                     </p>
@@ -190,11 +190,12 @@ const CellCount: React.FC = () => {
                           <div className="bg-white p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
                               <div>
                                   <p className="text-sm font-bold text-slate-500 uppercase">Total Yield</p>
-                                  <p className="text-slate-400 text-xs mt-1">Based on {vol} mL volume</p>
+                                  <p className="text-slate-400 text-xs mt-1">Live + dead, based on {vol} mL volume</p>
                               </div>
                               <div className="text-right">
+                                  <div className="text-xs text-slate-400">{formatScientific(liveConc * vol)} live</div>
                                   <span className="text-3xl font-bold text-indigo-600">{formatScientific(totalCells)}</span>
-                                  <span className="text-sm font-bold text-indigo-300 ml-2">Cells</span>
+                                  <span className="text-sm font-bold text-indigo-300 ml-2">Total Cells</span>
                               </div>
                           </div>
                       )}

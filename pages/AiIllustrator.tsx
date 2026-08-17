@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Download, Sparkles, RefreshCw, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
-import { PageHeader, Card, Button, Input, Select } from '../components/UI';
+import { PageHeader, Card, Button, Select } from '../components/UI';
 
 const PRESETS = [
   { id: 'diagram', label: 'Scientific Diagram', prompt: 'A clean, 2D vector-style scientific diagram of ' },
@@ -34,11 +34,13 @@ const AiIllustrator: React.FC = () => {
 
     try {
       // 1. Initialize Gemini Client
-      // Note: In a static client-side app, we rely on the user or environment having the key.
-      const apiKey = process.env.API_KEY;
-      
+      // NOTE: this is a static client-side app, so the key ships inside the JS bundle and is
+      // readable by anyone who loads the page. Use a key restricted to this origin with a hard
+      // quota, or proxy the call through a small server before exposing this publicly.
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
       if (!apiKey) {
-          throw new Error("API Key is missing. Please configure process.env.API_KEY.");
+          throw new Error("API key is missing. Set VITE_GEMINI_API_KEY in your .env file and rebuild.");
       }
 
       const ai = new GoogleGenAI({ apiKey });

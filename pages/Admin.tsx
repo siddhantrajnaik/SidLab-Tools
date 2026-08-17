@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Trash2, Upload, Image as ImageIcon, ShieldCheck, AlertCircle, Lock, Key, LayoutTemplate } from 'lucide-react';
-import { PageHeader, Card, Button, Input } from '../components/UI';
+import { PageHeader, Card, Button } from '../components/UI';
 import { AdZone } from '../components/AdBanner';
 
 const ACCESS_CODE = '6188';
@@ -20,7 +20,6 @@ const Admin: React.FC = () => {
   // Banner State
   const [activeZone, setActiveZone] = useState<AdZone>('hero');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [currentBanner, setCurrentBanner] = useState<string | null>(null); // What is currently saved
   const [status, setStatus] = useState<{ type: 'success' | 'error' | null; msg: string }>({ type: null, msg: '' });
 
   // Check session on mount
@@ -42,7 +41,6 @@ const Admin: React.FC = () => {
     const key = ZONES.find(z => z.id === zone)?.storageKey;
     if (key) {
         const saved = localStorage.getItem(key);
-        setCurrentBanner(saved);
         setSelectedImage(saved); // Reset editor to current
         setStatus({ type: null, msg: '' });
     }
@@ -88,7 +86,6 @@ const Admin: React.FC = () => {
     if (selectedImage && zoneConfig) {
       try {
         localStorage.setItem(zoneConfig.storageKey, selectedImage);
-        setCurrentBanner(selectedImage);
         setStatus({ type: 'success', msg: `${zoneConfig.label} updated successfully!` });
       } catch (err) {
         setStatus({ type: 'error', msg: 'Storage quota exceeded. Try a smaller image.' });
@@ -101,7 +98,6 @@ const Admin: React.FC = () => {
     if (zoneConfig) {
         localStorage.removeItem(zoneConfig.storageKey);
         setSelectedImage(null);
-        setCurrentBanner(null);
         setStatus({ type: 'success', msg: `${zoneConfig.label} removed.` });
     }
   };

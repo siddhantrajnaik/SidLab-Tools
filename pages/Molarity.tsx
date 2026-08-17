@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, Printer, FlaskConical, Beaker, Check, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Printer, FlaskConical, Beaker, AlertTriangle } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { usePersistedState, safeNum, formatScientific, UNITS } from '../utils';
 

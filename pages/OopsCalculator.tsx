@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, RefreshCw, ArrowRight, XCircle, Activity, TestTubes, Droplets, Scale, Beaker } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw, ArrowRight, XCircle, Activity, TestTubes, Droplets, Scale } from 'lucide-react';
 import { PageHeader, Card, Input, Button } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 
@@ -53,18 +53,24 @@ const OopsCalculator: React.FC = () => {
     actionType: 'dilute' | 'add' | 'remake' | 'ok';
   } | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleModeChange = (m: OopsMode) => {
     setState(prev => ({ ...prev, mode: m }));
     setResult(null);
+    setError(null);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setState(prev => ({ ...prev, [e.target.name]: e.target.value === '' ? '' : parseFloat(e.target.value) }));
     setResult(null);
+    setError(null);
   };
 
   const calculate = () => {
     const { mode } = state;
+    setError(null);
+    const missing = 'Please fill in every field above (all values must be greater than 0).';
     let errorPct = 0;
     let severity: Severity = 'minor';
     let header = '';
@@ -80,7 +86,7 @@ const OopsCalculator: React.FC = () => {
             const actual = safeNum(state.prepMassActual);
             const plannedVol = safeNum(state.prepVolTarget);
 
-            if (!desired || !actual || !plannedVol) return;
+            if (!desired || !actual || !plannedVol) { setError(missing); return; }
 
             errorPct = ((actual - desired) / desired) * 100;
 
@@ -126,7 +132,7 @@ const OopsCalculator: React.FC = () => {
             const actualVol = safeNum(state.prepVolActual);
             const soluteMass = safeNum(state.prepSoluteMass);
 
-            if (!desiredVol || !actualVol || !soluteMass) return;
+            if (!desiredVol || !actualVol || !soluteMass) { setError(missing); return; }
 
             errorPct = ((actualVol - desiredVol) / desiredVol) * 100;
 
@@ -177,7 +183,7 @@ const OopsCalculator: React.FC = () => {
         const actual = safeNum(state.actualConc);
         const vol = safeNum(state.currentVol);
 
-        if (!target || !actual || !vol) return;
+        if (!target || !actual || !vol) { setError(missing); return; }
 
         errorPct = ((actual - target) / target) * 100;
         
@@ -222,10 +228,12 @@ const OopsCalculator: React.FC = () => {
     if (mode === 'ph') {
         const target = safeNum(state.targetPh);
         const actual = safeNum(state.actualPh);
-        if (!target || !actual) return;
+        if (!target || !actual) { setError(missing); return; }
 
         const diff = actual - target; // + means too basic, - means too acidic
-        errorPct = (Math.abs(diff) / target) * 100; 
+        // pH is logarithmic, so a percentage of the pH number is meaningless for grading.
+        // Grade by the offset itself: 0.1 unit -> minor, 0.5 -> moderate, >1 -> critical.
+        errorPct = Math.abs(diff) * 20;
 
         if (Math.abs(diff) < 0.05) {
              header = "pH Acceptable";
@@ -264,7 +272,7 @@ const OopsCalculator: React.FC = () => {
         const titer = safeNum(state.virusTiter); 
         const volAddeduL = safeNum(state.virusVolAdded);
         
-        if (!target || !cells || !titer || !volAddeduL) return;
+        if (!target || !cells || !titer || !volAddeduL) { setError(missing); return; }
 
         const volAddedmL = volAddeduL / 1000;
         const actualMoi = (titer * volAddedmL) / cells;
@@ -277,10 +285,21 @@ const OopsCalculator: React.FC = () => {
              correction = "Proceed.";
              actionType = 'ok';
         } else if (errorPct > 0) {
+            // Volume of virus that *should* have gone in for the target MOI.
+            const wantedVoluL = ((target * cells) / titer) * 1000;
             header = "MOI Too High";
             message = `Actual: ${actualMoi.toFixed(2)} (Target: ${target})`;
-            correction = "Wash cells immediately if not incubated. Otherwise, note toxicity potential.";
-            actionType = 'remake'; 
+            correction = (
+                <span>
+                    Target volume was <strong className="text-blue-600">{formatScientific(wantedVoluL)} μL</strong>, you added {volAddeduL} μL.
+                    <br/>
+                    <span className="text-sm text-slate-500 mt-2 block">
+                        If not yet incubated, wash the cells and re-inoculate. Otherwise scale the culture up by
+                        <strong> {(actualMoi / target).toFixed(2)}×</strong> more cells to bring the MOI back to target, and watch for toxicity.
+                    </span>
+                </span>
+            );
+            actionType = Math.abs(errorPct) > 100 ? 'remake' : 'dilute';
         } else {
             header = "MOI Too Low";
             message = `Actual: ${actualMoi.toFixed(2)} (Target: ${target})`;
@@ -418,6 +437,13 @@ const OopsCalculator: React.FC = () => {
                         <Input label="Viral Titer (pfu/mL)" name="virusTiter" value={state.virusTiter} onChange={handleChange} placeholder="Stock conc" />
                         <Input label="Virus Vol Added (µL)" name="virusVolAdded" value={state.virusVolAdded} onChange={handleChange} placeholder="Added vol" />
                      </>
+                 )}
+
+                 {error && (
+                    <div className="flex items-center p-3 rounded-xl bg-red-50 text-red-700 text-sm border border-red-100">
+                        <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+                        {error}
+                    </div>
                  )}
 
                  <Button onClick={calculate} size="lg" className="w-full bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20" icon={<AlertTriangle size={18}/>}>

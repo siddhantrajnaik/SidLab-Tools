@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, Calculator, ArrowRightLeft, TrendingUp } from 'lucide-react';
+import { RefreshCw, Calculator, ArrowRightLeft } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 
@@ -28,7 +28,7 @@ const Logarithm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleModeChange = (mode: CalcMode) => {
-    setState(prev => ({ ...prev, mode, inputValue: '', result: null }));
+    setState(prev => ({ ...prev, mode, inputValue: '' }));
     setResult(null);
     setError(null);
   };
@@ -48,12 +48,14 @@ const Logarithm: React.FC = () => {
   const calculate = () => {
     setError(null);
     setResult(null);
+    if (state.inputValue === '') {
+        setError('Please enter a value.');
+        return;
+    }
     const val = safeNum(state.inputValue);
-    
+
     // --- Converter Mode ---
     if (state.mode === 'converter') {
-        if (state.inputValue === '') return;
-        
         // pH <-> [H+]
         if (state.converterType === 'ph') {
             // Check if input looks like pH (0-14 usually) or Conc (scientific)
@@ -261,7 +263,7 @@ const Logarithm: React.FC = () => {
         {/* Results */}
         <div className="lg:col-span-6 space-y-6">
             <Card title="Results" className="h-full bg-slate-50/50 border-2 border-dashed border-slate-200">
-                {result ? (
+                {result !== null ? (
                     <div className="space-y-8 animate-fadeIn">
                         
                         {state.mode !== 'converter' ? (

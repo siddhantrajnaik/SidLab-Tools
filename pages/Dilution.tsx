@@ -78,6 +78,13 @@ const Dilution: React.FC = () => {
 
     if (updates.v1 !== undefined || updates.c1 !== undefined || updates.v2 !== undefined || updates.c2 !== undefined) {
         setValues(prev => ({ ...prev, ...updates }));
+
+        // Sanity check: you cannot dilute a stock up to a higher concentration.
+        const finalC1 = updates.c1 !== undefined ? safeNum(updates.c1) * UNITS.concentration[c1Unit] : c1Base;
+        const finalC2 = updates.c2 !== undefined ? safeNum(updates.c2) * UNITS.concentration[c2Unit] : c2Base;
+        if (finalC1 !== null && finalC2 !== null && finalC2 > finalC1) {
+            setError('Target concentration is higher than the stock — this needs a more concentrated stock, not a dilution.');
+        }
     }
   };
 

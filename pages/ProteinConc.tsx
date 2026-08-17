@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dna, Printer, RefreshCw, AlertTriangle, Info, ArrowRight } from 'lucide-react';
+import { Dna, Printer, RefreshCw, AlertTriangle, Info } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 

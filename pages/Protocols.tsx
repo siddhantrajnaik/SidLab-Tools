@@ -13,20 +13,29 @@ const PROTOCOLS: Protocol[] = [
       { id: 'samples', label: 'Number of Samples', defaultValue: 10, unit: 'tubes' },
       { id: 'vol', label: 'Reaction Volume', defaultValue: 25, unit: 'μL' }
     ],
-    steps: (vars) => [
-      { id: 'h1', text: 'Preparation', isHeader: true },
-      { id: 's1', text: `Thaw reagents on ice. You are preparing for ${vars.samples} samples (plus 10% overage).` },
-      { id: 's2', text: `Label a 1.5mL tube as "Master Mix".` },
-      { id: 'h2', text: 'Master Mix Components (per rxn x count)', isHeader: true },
-      { id: 's3', text: `Water: ${(18.5 * (vars.samples * 1.1)).toFixed(1)} μL` },
-      { id: 's4', text: `10x Buffer: ${(2.5 * (vars.samples * 1.1)).toFixed(1)} μL` },
-      { id: 's5', text: `dNTPs: ${(0.5 * (vars.samples * 1.1)).toFixed(1)} μL` },
-      { id: 's6', text: `Fwd Primer: ${(1.25 * (vars.samples * 1.1)).toFixed(1)} μL` },
-      { id: 's7', text: `Rev Primer: ${(1.25 * (vars.samples * 1.1)).toFixed(1)} μL` },
-      { id: 's8', text: `Taq Polymerase: ${(0.125 * (vars.samples * 1.1)).toFixed(1)} μL` },
-      { id: 's9', text: `Aliquot ${(vars.vol - 1)} μL of Master Mix into PCR tubes.` },
-      { id: 's10', text: `Add 1 μL of Template DNA to each tube.` },
-    ]
+    steps: (vars) => {
+      // Base recipe is defined per 25 µL reaction and scaled to the chosen reaction volume.
+      // Template is 1 µL per 25 µL, so the master mix fills the rest.
+      const scale = (vars.vol || 0) / 25;
+      const rxns = (vars.samples || 0) * 1.1; // 10% pipetting overage
+      const perTube = vars.vol - 1 * scale;
+      const amount = (perRxn25: number) => (perRxn25 * scale * rxns).toFixed(1);
+      return [
+        { id: 'h1', text: 'Preparation', isHeader: true },
+        { id: 's1', text: `Thaw reagents on ice. You are preparing ${vars.samples} × ${vars.vol} μL reactions (plus 10% overage).` },
+        { id: 's2', text: `Label a 1.5mL tube as "Master Mix".` },
+        { id: 'h2', text: 'Master Mix Components (per rxn x count)', isHeader: true },
+        // 18.375 + 2.5 + 0.5 + 1.25 + 1.25 + 0.125 = 24 µL of mix + 1 µL template = 25 µL reaction.
+        { id: 's3', text: `Water: ${amount(18.375)} μL` },
+        { id: 's4', text: `10x Buffer: ${amount(2.5)} μL` },
+        { id: 's5', text: `dNTPs: ${amount(0.5)} μL` },
+        { id: 's6', text: `Fwd Primer: ${amount(1.25)} μL` },
+        { id: 's7', text: `Rev Primer: ${amount(1.25)} μL` },
+        { id: 's8', text: `Taq Polymerase: ${amount(0.125)} μL` },
+        { id: 's9', text: `Aliquot ${perTube.toFixed(1)} μL of Master Mix into PCR tubes.` },
+        { id: 's10', text: `Add ${(1 * scale).toFixed(1)} μL of Template DNA to each tube.` },
+      ];
+    }
   },
   {
     id: 'western-lysis',

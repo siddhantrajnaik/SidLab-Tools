@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Printer, RefreshCw, Calculator, Beaker, CheckCircle, ArrowRight } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
-import { safeNum, formatScientific } from '../utils';
+import { safeNum } from '../utils';
 
 // --- Logic Helpers ---
 
@@ -22,7 +22,7 @@ const PRESETS = [
   { label: 'Midi Gel (1.0mm)', resolving: 20.0, stacking: 8.0 },
 ];
 
-const calculateForward = (totalVol: number, targetPercent: number, stockPercent: number, isStacking: boolean): GelRecipe => {
+const calculateForward = (totalVol: number, targetPercent: number, stockPercent: number): GelRecipe => {
   if (totalVol <= 0) return { water: 0, buffer: 0, acrylamide: 0, sds: 0, aps: 0, temed: 0, total: 0 };
   
   // Standard Laemmli Ratios
@@ -52,6 +52,9 @@ const calculateForward = (totalVol: number, targetPercent: number, stockPercent:
   };
 };
 
+// Keeps an empty field empty instead of snapping it to 0, so decimals can be typed.
+const numOrEmpty = (v: string): number | '' => (v === '' ? '' : parseFloat(v));
+
 const calculateReverse = (acrylVol: number, totalVol: number, stockPercent: number): number => {
     if (totalVol <= 0) return 0;
     return (acrylVol * stockPercent) / totalVol;
@@ -77,8 +80,8 @@ const SdsPage: React.FC = () => {
     setStackVol(PRESETS[presetIdx].stacking);
   };
 
-  const resRecipe = calculateForward(safeNum(resVol), safeNum(resPercent), stockConc, false);
-  const stackRecipe = calculateForward(safeNum(stackVol), safeNum(stackPercent), stockConc, true);
+  const resRecipe = calculateForward(safeNum(resVol), safeNum(resPercent), stockConc);
+  const stackRecipe = calculateForward(safeNum(stackVol), safeNum(stackPercent), stockConc);
   
   const revResult = calculateReverse(safeNum(revAcrylVol), safeNum(revTotalVol), revStockConc);
 
@@ -156,8 +159,8 @@ const SdsPage: React.FC = () => {
                                  Resolving (Lower) Gel
                              </h4>
                              <div className="grid grid-cols-2 gap-4">
-                                 <Input label="Percentage (%)" value={resPercent} onChange={e => setResPercent(safeNum(e.target.value))} />
-                                 <Input label="Volume (mL)" value={resVol} onChange={e => setResVol(safeNum(e.target.value))} />
+                                 <Input label="Percentage (%)" value={resPercent} onChange={e => setResPercent(numOrEmpty(e.target.value))} />
+                                 <Input label="Volume (mL)" value={resVol} onChange={e => setResVol(numOrEmpty(e.target.value))} />
                              </div>
                              {(safeNum(resPercent) > stockConc) && (
                                  <p className="text-xs text-red-500 mt-2 font-medium">Target % cannot exceed Stock %</p>
@@ -171,8 +174,8 @@ const SdsPage: React.FC = () => {
                                  Stacking (Upper) Gel
                              </h4>
                              <div className="grid grid-cols-2 gap-4">
-                                 <Input label="Percentage (%)" value={stackPercent} onChange={e => setStackPercent(safeNum(e.target.value))} />
-                                 <Input label="Volume (mL)" value={stackVol} onChange={e => setStackVol(safeNum(e.target.value))} />
+                                 <Input label="Percentage (%)" value={stackPercent} onChange={e => setStackPercent(numOrEmpty(e.target.value))} />
+                                 <Input label="Volume (mL)" value={stackVol} onChange={e => setStackVol(numOrEmpty(e.target.value))} />
                              </div>
                         </div>
                     </div>
@@ -235,9 +238,9 @@ const SdsPage: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
-                    {resRecipe.water <= 0 && (
+                    {(resRecipe.water <= 0 || stackRecipe.water <= 0) && (
                         <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center">
-                            Invalid Recipe: Total volume is too small for the desired percentage using this stock solution.
+                            Invalid Recipe ({resRecipe.water <= 0 ? 'resolving' : 'stacking'} gel): the target percentage leaves no room for water at this stock concentration.
                         </div>
                     )}
                 </Card>
@@ -257,14 +260,14 @@ const SdsPage: React.FC = () => {
                         <Input 
                             label="Acrylamide Vol Added" 
                             value={revAcrylVol} 
-                            onChange={(e) => setRevAcrylVol(safeNum(e.target.value))} 
+                            onChange={(e) => setRevAcrylVol(numOrEmpty(e.target.value))} 
                             unit="mL"
                             placeholder="Volume"
                         />
                         <Input 
                             label="Total Gel Volume" 
                             value={revTotalVol} 
-                            onChange={(e) => setRevTotalVol(safeNum(e.target.value))} 
+                            onChange={(e) => setRevTotalVol(numOrEmpty(e.target.value))} 
                             unit="mL"
                             placeholder="Total"
                         />

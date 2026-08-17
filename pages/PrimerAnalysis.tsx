@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Dna, Printer, AlertCircle, Thermometer, Layers, FlaskConical, Search, Sliders, CheckCircle, XCircle, RefreshCw, Zap, Microscope, ArrowRight, ArrowLeft } from 'lucide-react';
-import { PageHeader, Card, Button, Input, Select } from '../components/UI';
+import { Dna, Printer, AlertCircle, Thermometer, Layers, FlaskConical, CheckCircle, XCircle, RefreshCw, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
+import { PageHeader, Card, Button, Input } from '../components/UI';
 import { safeNum } from '../utils';
 
 // --- Types & Constants ---
@@ -90,11 +90,19 @@ const calculatePrimerProps = (rawSeq: string, primerConcNm: number): PrimerResul
         if (NN_PARAMS[pair]) { dH += NN_PARAMS[pair].dH; dS += NN_PARAMS[pair].dS; }
     }
 
+    if (!(primerConcNm > 0)) {
+        return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Primer concentration must be > 0 nM' };
+    }
+
     const saltCorr = 16.6 * Math.log10(DEFAULT_CONC_NA_MM / 1000);
     const R = 1.987;
     const Ct = primerConcNm * 1e-9;
     const term = R * Math.log(Ct / 4);
     const tmNN = ((dH * 1000) / (dS + term)) - 273.15 + saltCorr;
+
+    if (!isFinite(tmNN)) {
+        return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Tm could not be computed for this sequence' };
+    }
 
     return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN, molecularWeight: mw, isValid: true };
 };
@@ -106,7 +114,8 @@ const designPrimers = (
         minLen: number, maxLen: number,
         minTm: number, maxTm: number,
         optTm: number
-    }
+    },
+    primerConcNm: number
 ): PrimerPair[] => {
     const seq = cleanSequence(template);
     const len = seq.length;
@@ -120,7 +129,7 @@ const designPrimers = (
         for (let l = config.minLen; l <= config.maxLen; l++) {
             if (i + l > len) break;
             const sub = seq.substring(i, i + l);
-            const props = calculatePrimerProps(sub, 500);
+            const props = calculatePrimerProps(sub, primerConcNm);
             if (props.isValid && props.tmNN >= (config.minTm - 5) && props.tmNN <= (config.maxTm + 5)) {
                 forwardCandidates.push({ ...props, start: i, end: i + l - 1, strand: 'sense' });
             }
@@ -134,7 +143,7 @@ const designPrimers = (
             const end = i;
             const templateSegment = seq.substring(start, end + 1);
             const primerSeq = reverseComplement(templateSegment);
-            const props = calculatePrimerProps(primerSeq, 500);
+            const props = calculatePrimerProps(primerSeq, primerConcNm);
             if (props.isValid && props.tmNN >= (config.minTm - 5) && props.tmNN <= (config.maxTm + 5)) {
                 reverseCandidates.push({ ...props, start: start, end: end, strand: 'antisense' });
             }
@@ -164,8 +173,8 @@ const designPrimers = (
             const tmPenalty = Math.abs(f.tmNN - config.optTm) + Math.abs(r.tmNN - config.optTm);
             const diffPenalty = tmDiff * 2;
             const gcPenalty = (Math.abs(f.gc - 50) + Math.abs(r.gc - 50)) * 0.1;
-            const fClamp = (f.seq.endsWith('G') || f.seq.endsWith('C')) ? 0 : 2;
-            const rClamp = (r.seq.endsWith('G') || r.seq.endsWith('C')) ? 0 : 2;
+            const fClamp = (f.cleanSeq.endsWith('G') || f.cleanSeq.endsWith('C')) ? 0 : 2;
+            const rClamp = (r.cleanSeq.endsWith('G') || r.cleanSeq.endsWith('C')) ? 0 : 2;
 
             const score = tmPenalty + diffPenalty + gcPenalty + fClamp + rClamp;
 
@@ -250,12 +259,12 @@ const PrimerAnalysis: React.FC = () => {
         setHasSearched(true);
         setDesignResults([]);
         setTimeout(() => {
-            const pairs = designPrimers(templateInput, designConfig);
+            const pairs = designPrimers(templateInput, designConfig, primerConc);
             setDesignResults(pairs);
             if (pairs.length > 0) setSelectedPairId(pairs[0].id);
             setIsDesigning(false);
         }, 50);
-    }, [templateInput, designConfig]);
+    }, [templateInput, designConfig, primerConc]);
 
     const selectedPair = designResults.find(p => p.id === selectedPairId);
 
@@ -569,35 +578,28 @@ const PrimerAnalysis: React.FC = () => {
 };
 
 // Sub-components
-const PrimerBadge: React.FC<{ p: PrimerResult, color?: 'blue' | 'indigo', theme?: 'cyan' | 'purple' }> = ({ p, color, theme }) => {
-    // Shared component handling both themes
-    if (theme) {
-        return (
-            <div className={`mt-2 p-3 rounded-xl bg-${theme}-500/10 border border-${theme}-500/20 flex justify-between text-xs`}>
-                <div><span className={`text-${theme}-200 block opacity-50 uppercase font-bold text-[10px]`}>Length</span>{p.length}bp</div>
-                <div><span className={`text-${theme}-200 block opacity-50 uppercase font-bold text-[10px]`}>GC%</span>{p.gc.toFixed(1)}%</div>
-                <div><span className={`text-${theme}-200 block opacity-50 uppercase font-bold text-[10px]`}>Tm</span>{p.tmNN.toFixed(1)}°C</div>
-            </div>
-        );
-    }
-    // Default Light Mode Badge
-    return (
-        <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm text-xs grid grid-cols-3 gap-2 mt-2">
-            <div>
-                <span className="text-slate-400 block uppercase text-[10px] font-bold">Length</span>
-                <span className="font-bold text-slate-700">{p.length} bp</span>
-            </div>
-            <div>
-                <span className="text-slate-400 block uppercase text-[10px] font-bold">GC%</span>
-                <span className={`font-bold ${p.gc < 40 || p.gc > 60 ? 'text-orange-500' : 'text-slate-700'}`}>{p.gc.toFixed(1)}%</span>
-            </div>
-            <div>
-                <span className="text-slate-400 block uppercase text-[10px] font-bold">Tm (NN)</span>
-                <span className={`font-bold text-${color}-600`}>{p.tmNN.toFixed(1)}°C</span>
-            </div>
-        </div>
-    );
+// Class names must be written out in full: Tailwind cannot see interpolated strings.
+const TM_COLOR: Record<'blue' | 'indigo', string> = {
+    blue: 'text-blue-600',
+    indigo: 'text-indigo-600',
 };
+
+const PrimerBadge: React.FC<{ p: PrimerResult, color?: 'blue' | 'indigo' }> = ({ p, color = 'blue' }) => (
+    <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm text-xs grid grid-cols-3 gap-2 mt-2">
+        <div>
+            <span className="text-slate-400 block uppercase text-[10px] font-bold">Length</span>
+            <span className="font-bold text-slate-700">{p.length} bp</span>
+        </div>
+        <div>
+            <span className="text-slate-400 block uppercase text-[10px] font-bold">GC%</span>
+            <span className={`font-bold ${p.gc < 40 || p.gc > 60 ? 'text-orange-500' : 'text-slate-700'}`}>{p.gc.toFixed(1)}%</span>
+        </div>
+        <div>
+            <span className="text-slate-400 block uppercase text-[10px] font-bold">Tm (NN)</span>
+            <span className={`font-bold ${TM_COLOR[color]}`}>{p.tmNN.toFixed(1)}°C</span>
+        </div>
+    </div>
+);
 
 const ErrorMsg: React.FC<{ msg: string }> = ({ msg }) => (
     <div className="mt-2 text-red-500 text-xs flex items-center bg-red-50 p-2 rounded-lg"><XCircle size={12} className="mr-1" /> {msg}</div>

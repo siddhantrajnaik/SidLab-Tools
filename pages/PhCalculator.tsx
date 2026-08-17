@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Droplet, FlaskConical, Calculator } from 'lucide-react';
+import { Activity, FlaskConical, Calculator } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 
@@ -29,11 +29,18 @@ const PhCalculator: React.FC = () => {
   const [baseConc, setBaseConc] = useState<number | string>('');
   const [bufferResult, setBufferResult] = useState<{ pH: string; pOH: string; hConc: string } | null>(null);
 
+  const [errors, setErrors] = useState<{ strong?: string; weak?: string; buffer?: string }>({});
+
   // --- Calculation Logic ---
 
   const calculateStrong = () => {
     const c = safeNum(strongConc);
-    if (c <= 0) return;
+    if (strongConc === '' || c <= 0) {
+      setStrongResult(null);
+      setErrors(e => ({ ...e, strong: 'Enter a concentration greater than 0 M.' }));
+      return;
+    }
+    setErrors(e => ({ ...e, strong: undefined }));
 
     let pH = 0;
     if (strongType === 'acid') {
@@ -53,7 +60,17 @@ const PhCalculator: React.FC = () => {
   const calculateWeak = () => {
     const c = safeNum(weakConc);
     const pka = safeNum(weakPKa);
-    if (c <= 0) return;
+    if (weakConc === '' || c <= 0) {
+      setWeakResult(null);
+      setErrors(e => ({ ...e, weak: 'Enter a concentration greater than 0 M.' }));
+      return;
+    }
+    if (weakPKa === '') {
+      setWeakResult(null);
+      setErrors(e => ({ ...e, weak: 'Enter the pKa of the acid.' }));
+      return;
+    }
+    setErrors(e => ({ ...e, weak: undefined }));
 
     // Approximation: [H+] = sqrt(Ka * C)
     // pH = 0.5 * (pKa - log[C])
@@ -70,7 +87,17 @@ const PhCalculator: React.FC = () => {
     const pka = safeNum(bufferPKa);
     const acid = safeNum(acidConc);
     const base = safeNum(baseConc);
-    if (acid <= 0 || base <= 0) return;
+    if (bufferPKa === '') {
+      setBufferResult(null);
+      setErrors(e => ({ ...e, buffer: 'Enter a pKa, or pick a preset above.' }));
+      return;
+    }
+    if (acid <= 0 || base <= 0) {
+      setBufferResult(null);
+      setErrors(e => ({ ...e, buffer: 'Both [Acid] and [Base] must be greater than 0 M.' }));
+      return;
+    }
+    setErrors(e => ({ ...e, buffer: undefined }));
 
     // Henderson-Hasselbalch: pH = pKa + log([A-]/[HA])
     const pH = pka + Math.log10(base / acid);
@@ -119,6 +146,10 @@ const PhCalculator: React.FC = () => {
 
              <Button onClick={calculateStrong} className="w-full" icon={<Calculator size={16}/>}>Calculate pH</Button>
 
+             {errors.strong && (
+               <div className="p-3 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100">{errors.strong}</div>
+             )}
+
              {strongResult && (
                <div className="mt-4 p-4 bg-slate-50 rounded-xl space-y-2 border border-slate-100">
                   <div className="flex justify-between items-center">
@@ -163,6 +194,10 @@ const PhCalculator: React.FC = () => {
              </div>
 
              <Button onClick={calculateWeak} className="w-full" variant="primary" icon={<FlaskConical size={16}/>}>Calculate pH</Button>
+
+             {errors.weak && (
+               <div className="p-3 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100">{errors.weak}</div>
+             )}
 
              {weakResult && (
                <div className="mt-4 p-4 bg-slate-50 rounded-xl space-y-2 border border-slate-100">
@@ -230,6 +265,10 @@ const PhCalculator: React.FC = () => {
              </div>
 
              <Button onClick={calculateBuffer} className="w-full" variant="primary" icon={<Activity size={16}/>}>Calculate pH</Button>
+
+             {errors.buffer && (
+               <div className="p-3 bg-red-50 text-red-700 text-sm rounded-xl border border-red-100">{errors.buffer}</div>
+             )}
 
              {bufferResult && (
                <div className="mt-4 p-4 bg-slate-50 rounded-xl space-y-2 border border-slate-100">

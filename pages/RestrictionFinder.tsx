@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Scissors, Search, BarChart3, List, Circle, ArrowLeftRight, Check, AlertCircle } from 'lucide-react';
-import { PageHeader, Card, Button } from '../components/UI';
+import { Scissors, Circle, ArrowLeftRight } from 'lucide-react';
+import { PageHeader, Card } from '../components/UI';
 
 // --- DATA: Enzyme Dictionary ---
 interface Enzyme {
@@ -36,12 +36,6 @@ const RestrictionFinder: React.FC = () => {
   const [isCircular, setIsCircular] = useState(false);
   const [selectedEnzyme, setSelectedEnzyme] = useState<string | 'ALL'>('ALL');
 
-  // Helper: Reverse Complement
-  const getRevComp = (seq: string) => {
-    const map: Record<string, string> = { A: 'T', T: 'A', G: 'C', C: 'G', N: 'N' };
-    return seq.split('').reverse().map(b => map[b] || 'N').join('');
-  };
-
   // --- ANALYSIS LOGIC ---
   const { cutSites, fragments, seqLength } = useMemo(() => {
     const cleanSeq = sequence.replace(/[^a-zA-Z]/g, '').toUpperCase();
@@ -55,17 +49,26 @@ const RestrictionFinder: React.FC = () => {
       ? ENZYMES 
       : ENZYMES.filter(e => e.name === selectedEnzyme);
 
+    // Every enzyme in the table above is palindromic, so a top-strand scan finds
+    // both-strand sites. On a circular molecule a site can straddle the origin, so
+    // scan the sequence with its own head appended and wrap the coordinates back.
+    const searchSeq = isCircular
+      ? cleanSeq + cleanSeq.slice(0, Math.max(...ENZYMES.map(e => e.seq.length)) - 1)
+      : cleanSeq;
+
     enzymesToCheck.forEach(enzyme => {
-      // 1. Forward Strand Search
-      let pos = cleanSeq.indexOf(enzyme.seq);
+      let pos = searchSeq.indexOf(enzyme.seq);
       while (pos !== -1) {
-        sites.push({
-          enzyme,
-          pos: pos + enzyme.cutOffset, // Cut is after this index
-          strand: 'forward',
-          recStart: pos
-        });
-        pos = cleanSeq.indexOf(enzyme.seq, pos + 1);
+        // Only accept matches that start inside the real sequence, so a site is not counted twice.
+        if (pos < len) {
+          sites.push({
+            enzyme,
+            pos: (pos + enzyme.cutOffset) % len, // Cut is after this index
+            strand: 'forward',
+            recStart: pos
+          });
+        }
+        pos = searchSeq.indexOf(enzyme.seq, pos + 1);
       }
     });
 
@@ -76,16 +79,16 @@ const RestrictionFinder: React.FC = () => {
     let frags: { start: number; end: number; length: number }[] = [];
     
     if (sites.length > 0) {
-       let currentPos = 0;
-       
        // For circular DNA, we need to wrap around
        if (isCircular) {
-         for (let i = 0; i < sites.length - 1; i++) {
-            frags.push({ start: sites[i].pos, end: sites[i+1].pos, length: sites[i+1].pos - sites[i].pos });
+         // Two enzymes cutting at the same position must not create a 0 bp fragment.
+         const cuts = [...new Set(sites.map(s => s.pos))].sort((a, b) => a - b);
+         for (let i = 0; i < cuts.length - 1; i++) {
+            frags.push({ start: cuts[i], end: cuts[i+1], length: cuts[i+1] - cuts[i] });
          }
-         // Wrap frag
-         const last = sites[sites.length - 1].pos;
-         const first = sites[0].pos;
+         // Wrap frag: with a single cut this is the whole (now linearised) molecule.
+         const last = cuts[cuts.length - 1];
+         const first = cuts[0];
          frags.push({ start: last, end: first, length: (len - last) + first });
        } else {
          const sortedCuts = [0, ...sites.map(s => s.pos), len];

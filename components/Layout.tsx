@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, Search, Image as ImageIcon, Mail } from 'lucide-react';
-import { Button } from './UI';
+import { X, Search, Mail } from 'lucide-react';
 import { WhatsAppIcon } from './ScienceIcons';
 import { CookieConsent } from './CookieConsent';
 
