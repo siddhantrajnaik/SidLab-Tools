@@ -37,7 +37,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # `npm run build` is `tsc && vite build`, so a type error fails the deploy.
+      # The formulas are the product, so a wrong constant must block the deploy rather
+      # than ship. These assert against published reference values, not against whatever
+      # the code currently returns.
+      - name: Test
+        run: npm test
+
+      # `npm run build` is `tsc && vite build`, so a type error fails the deploy too.
       - name: Build
         run: npm run build
 

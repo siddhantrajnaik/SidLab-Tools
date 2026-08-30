@@ -3,15 +3,7 @@ import { RefreshCw, Printer, Link2, Info } from 'lucide-react';
 import { PageHeader, Card, Input, Button } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 import { pmolDsDNA, AVG_MW } from '../lib/sequence';
-
-/**
- * insert mass (ng) = vector mass (ng) × (insert bp / vector bp) × molar ratio
- *
- * The 660 Da/bp average cancels out of the ratio, which is why it does not appear here —
- * it is only needed for the pmol figures alongside.
- */
-const insertMassNg = (vectorNg: number, insertBp: number, vectorBp: number, ratio: number) =>
-  vectorBp > 0 ? vectorNg * (insertBp / vectorBp) * ratio : 0;
+import { ligationInsertMass as insertMassNg } from '../lib/labmath';
 
 const RATIOS = [1, 2, 3, 5, 7];
 

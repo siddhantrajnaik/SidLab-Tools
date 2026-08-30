@@ -3,23 +3,16 @@ import { Dna, Printer, AlertCircle, Thermometer, Layers, FlaskConical, CheckCirc
 import { PageHeader, Card, Button, Input } from '../components/UI';
 import { safeNum } from '../utils';
 import { cleanSequence, reverseComplement } from '../lib/sequence';
+import {
+    calculatePrimerProps, annealingTemp, effectiveMonovalent,
+    DEFAULT_SALT, type PrimerResult, type SaltConditions, type Polymerase,
+} from '../lib/tm';
 
 // --- Types & Constants ---
 type Mode = 'analyze' | 'design';
-type Polymerase = 'taq' | 'q5' | 'phusion';
 
-interface PrimerResult {
-    seq: string;
-    cleanSeq: string;
-    length: number;
-    gc: number;
-    tmBasic: number;
-    tmNN: number;
-    molecularWeight: number;
-    isValid: boolean;
-    error?: string;
-}
-
+// Design-mode shapes. The per-primer maths lives in lib/tm.ts; these describe how the
+// designer arranges candidates into pairs.
 interface CandidatePrimer extends PrimerResult {
     start: number;
     end: number;
@@ -34,112 +27,6 @@ interface PrimerPair {
     tmDiff: number;
     score: number;
 }
-
-// SantaLucia 1998 Thermodynamic Parameters
-const NN_PARAMS: Record<string, { dH: number; dS: number }> = {
-    'AA': { dH: -7.9, dS: -22.2 }, 'TT': { dH: -7.9, dS: -22.2 },
-    'AT': { dH: -7.2, dS: -20.4 }, 'TA': { dH: -7.2, dS: -21.3 },
-    'CA': { dH: -8.5, dS: -22.7 }, 'TG': { dH: -8.5, dS: -22.7 },
-    'GT': { dH: -8.4, dS: -22.4 }, 'AC': { dH: -8.4, dS: -22.4 },
-    'CT': { dH: -7.8, dS: -21.0 }, 'AG': { dH: -7.8, dS: -21.0 },
-    'GA': { dH: -8.2, dS: -22.2 }, 'TC': { dH: -8.2, dS: -22.2 },
-    'CG': { dH: -10.6, dS: -27.2 }, 'GC': { dH: -9.8, dS: -24.4 },
-    'GG': { dH: -8.0, dS: -19.9 }, 'CC': { dH: -8.0, dS: -19.9 },
-};
-const NN_INIT_GC = { dH: 0.1, dS: -2.8 };
-const NN_INIT_AT = { dH: 2.3, dS: 4.1 };
-
-// Buffer conditions. The defaults describe a standard PCR: 50 mM monovalent cation,
-// 1.5 mM Mg2+ (what Q5/Phusion HF buffers supply at 1x) and 200 uM of each dNTP.
-interface SaltConditions {
-    monovalentMM: number; // Na+ / K+
-    mgMM: number;         // Mg2+
-    dNTPsMM: number;      // total dNTPs
-}
-
-const DEFAULT_SALT: SaltConditions = { monovalentMM: 50, mgMM: 1.5, dNTPsMM: 0.8 };
-
-/**
- * Effective monovalent cation concentration in mol/L.
- *
- * Mg2+ stabilises the duplex far more than monovalent cations do, and PCR buffers always
- * contain it, so ignoring it puts the predicted Tm several degrees low. dNTPs chelate Mg2+
- * roughly 1:1, so only the free Mg2+ counts. The remainder is converted to a monovalent
- * equivalent with the empirical relation [MVC] = 3.795 * sqrt([Mg2+]) (von Ahsen et al.,
- * valid below 8 mM Mg2+ — the same conversion Primer3 uses as 120 * sqrt(mM)).
- *
- * Ref: von Ahsen, Wittwer & Schütz, Brief Bioinform 12(5):514-517 (2011), Eq. 2.
- */
-const effectiveMonovalent = (salt: SaltConditions): number => {
-    const freeMgM = Math.max(0, salt.mgMM - salt.dNTPsMM) / 1000;
-    return salt.monovalentMM / 1000 + 3.795 * Math.sqrt(freeMgM);
-};
-
-// --- Core Algorithms ---
-// cleanSequence and reverseComplement live in lib/sequence.ts, shared with the other
-// sequence pages rather than reimplemented here.
-
-const calculatePrimerProps = (rawSeq: string, primerConcNm: number, salt: SaltConditions = DEFAULT_SALT): PrimerResult => {
-    const cleanSeq = cleanSequence(rawSeq);
-    if (!cleanSeq) return { seq: rawSeq, cleanSeq: '', length: 0, gc: 0, tmBasic: 0, tmNN: 0, molecularWeight: 0, isValid: false };
-
-    if (/[^ATGC]/.test(cleanSeq)) {
-        return { seq: rawSeq, cleanSeq, length: cleanSeq.length, gc: 0, tmBasic: 0, tmNN: 0, molecularWeight: 0, isValid: false, error: 'Contains non-ATGC' };
-    }
-
-    const length = cleanSeq.length;
-    const g = (cleanSeq.match(/G/g) || []).length;
-    const c = (cleanSeq.match(/C/g) || []).length;
-    const a = (cleanSeq.match(/A/g) || []).length;
-    const t = (cleanSeq.match(/T/g) || []).length;
-    const gcPercent = ((g + c) / length) * 100;
-    const mw = (a * 313.2) + (c * 289.2) + (g * 329.2) + (t * 304.2) - 61.96;
-
-    let tmBasic = length < 14 ? (a + t) * 2 + (g + c) * 4 : 64.9 + 41 * (g + c - 16.4) / length;
-
-    let dH = 0;
-    let dS = 0;
-    const first = cleanSeq[0];
-    const last = cleanSeq[length - 1];
-    if (first === 'G' || first === 'C') { dH += NN_INIT_GC.dH; dS += NN_INIT_GC.dS; } else { dH += NN_INIT_AT.dH; dS += NN_INIT_AT.dS; }
-    if (last === 'G' || last === 'C') { dH += NN_INIT_GC.dH; dS += NN_INIT_GC.dS; } else { dH += NN_INIT_AT.dH; dS += NN_INIT_AT.dS; }
-
-    for (let i = 0; i < length - 1; i++) {
-        const pair = cleanSeq.slice(i, i + 2);
-        if (NN_PARAMS[pair]) { dH += NN_PARAMS[pair].dH; dS += NN_PARAMS[pair].dS; }
-    }
-
-    if (!(primerConcNm > 0)) {
-        return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Primer concentration must be > 0 nM' };
-    }
-
-    // Salt correction. The SantaLucia parameters above are for 1 M NaCl; the effect of
-    // running at PCR salt is entropic, so it is applied to dS rather than added to Tm:
-    //     dS[salt] = dS[1 M NaCl] + 0.368 * (N - 1) * ln([MVC])
-    // This is the correction recommended for use when Mg2+ is present (von Ahsen et al.,
-    // Brief Bioinform 12(5):514-517, 2011, Eq. 1). The older 16.6 * log10([Na+]) term added
-    // straight onto Tm ignores Mg2+ entirely and reads several degrees low for PCR primers.
-    const mvc = effectiveMonovalent(salt);
-    if (!(mvc > 0)) {
-        return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Salt concentration must be > 0' };
-    }
-    const dSsalt = dS + 0.368 * (length - 1) * Math.log(mvc);
-
-    const R = 1.987;
-    // For a non-self-complementary duplex whose two strands are at equal concentration C,
-    // the total strand concentration is 2C, so the CT/4 term of the van't Hoff equation
-    // becomes C/2. The value entered here is the concentration of each primer (the usual
-    // way a PCR is specified), not the sum of both strands.
-    const k = (primerConcNm * 1e-9) / 2;
-    const term = R * Math.log(k);
-    const tmNN = ((dH * 1000) / (dSsalt + term)) - 273.15;
-
-    if (!isFinite(tmNN)) {
-        return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN: 0, molecularWeight: mw, isValid: false, error: 'Tm could not be computed for this sequence' };
-    }
-
-    return { seq: rawSeq, cleanSeq, length, gc: gcPercent, tmBasic, tmNN, molecularWeight: mw, isValid: true };
-};
 
 const designPrimers = (
     template: string,
@@ -283,22 +170,7 @@ const PrimerAnalysis: React.FC = () => {
     const analysisTmDiff = fwd.isValid && rev.isValid ? Math.abs(fwd.tmNN - rev.tmNN) : 0;
     const analysisTa = useMemo(() => {
         if (!fwd.isValid || !rev.isValid) return null;
-        // Both rules are defined against the *lower* Tm primer.
-        const limiting = fwd.tmNN <= rev.tmNN ? fwd : rev;
-        const minTm = limiting.tmNN;
-
-        // NEB Q5 protocol (M0491/M0492): anneal 3 degC above the Tm of the lower Tm
-        // primer, to a maximum of 72 degC.
-        if (polymerase === 'q5') return Math.min(72, Math.round(minTm + 3));
-
-        // Thermo/NEB Phusion: Ta = Tm + 3 for primers longer than 20 nt, Ta = Tm for
-        // primers of 20 nt or shorter, again capped at 72 degC.
-        if (polymerase === 'phusion') {
-            return Math.min(72, Math.round(minTm + (limiting.length > 20 ? 3 : 0)));
-        }
-
-        // Standard Taq: the long-standing Tm - 5 degC rule of thumb.
-        return Math.round(minTm - 5);
+        return annealingTemp(polymerase, fwd, rev);
     }, [fwd, rev, polymerase]);
 
     const handleDesign = useCallback(async () => {

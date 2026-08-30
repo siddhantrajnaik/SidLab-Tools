@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RefreshCw, Calculator, ArrowRightLeft } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
+import { percentTfromA, aFromPercentT } from '../lib/labmath';
 
 type CalcMode = 'log' | 'antilog' | 'converter';
 type BaseType = '10' | 'e' | '2' | 'custom';
@@ -99,11 +100,11 @@ const Logarithm: React.FC = () => {
         // Abs <-> %T
         if (state.converterType === 'abs') {
             // %T = 10^(2 - A)
-            const tFromA = Math.pow(10, 2 - val);
+            const tFromA = percentTfromA(val);
             // A = 2 - log(%T)
             let aFromT = 0;
             let isValidT = val > 0;
-            if (isValidT) aFromT = 2 - Math.log10(val);
+            if (isValidT) aFromT = aFromPercentT(val);
 
             setResult(JSON.stringify({
                 type: 'abs',

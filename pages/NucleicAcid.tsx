@@ -3,6 +3,7 @@ import { RefreshCw, Printer, Dna, CheckCircle, AlertTriangle, Info } from 'lucid
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 import { AVG_MW } from '../lib/sequence';
+import { nucleicConcentration, A260_FACTORS } from '../lib/labmath';
 
 /**
  * Absorbance-to-concentration factors at A260 with a 1 cm path length, in ng/µL per
@@ -27,6 +28,8 @@ const NucleicAcid: React.FC = () => {
   const [length, setLength] = useState<number | ''>('');
 
   const cfg = SPECIES[species];
+  // Factors come from lib/labmath so the tests guard the same numbers the page uses.
+  void A260_FACTORS;
   const num = (v: string): number | '' => (v === '' ? '' : parseFloat(v));
 
   const A = safeNum(a260);
@@ -35,7 +38,7 @@ const NucleicAcid: React.FC = () => {
   const hasA260 = a260 !== '' && A > 0 && path > 0 && df > 0;
 
   // c (ng/µL) = A260 × factor × dilution / path length
-  const concNgUl = hasA260 ? (A * cfg.factor * df) / path : 0;
+  const concNgUl = hasA260 ? nucleicConcentration(A, species, df, path) : 0;
   const concUgMl = concNgUl; // ng/µL and µg/mL are the same number.
 
   // Molarity needs the length: mass / (length × average MW per unit).

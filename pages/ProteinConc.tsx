@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dna, Printer, RefreshCw, AlertTriangle, Info } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
+import { beerLambert } from '../lib/labmath';
 
 type ExtinctionUnit = 'molar' | 'mass';
 
@@ -55,7 +56,7 @@ const ProteinConc: React.FC = () => {
 
     if (values.extUnit === 'molar') {
       // Formula: c (M) = A / (E * l)
-      molarConc = A / (E * L);
+      molarConc = beerLambert(A, E, L);
       
       // If MW exists, convert to mg/mL
       // c (mg/mL) = c (M) * MW (g/mol)
@@ -64,7 +65,7 @@ const ProteinConc: React.FC = () => {
       }
     } else {
       // Formula: c (mg/mL) = A / (E * l)
-      massConc = A / (E * L);
+      massConc = beerLambert(A, E, L);
 
       // If MW exists, convert to M
       // c (M) = c (mg/mL) / MW (g/mol)

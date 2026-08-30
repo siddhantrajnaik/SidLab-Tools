@@ -2,18 +2,12 @@ import React, { useState } from 'react';
 import { Printer } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum } from '../utils';
+import { gelRecipe, gelPercentFromVolume } from '../lib/labmath';
 
 // --- Logic Helpers ---
 
-interface GelRecipe {
-  water: number;
-  buffer: number;
-  acrylamide: number;
-  sds: number;
-  aps: number;
-  temed: number;
-  total: number;
-}
+// Keeps an empty field empty instead of snapping it to 0, so decimals can be typed.
+const numOrEmpty = (v: string): number | '' => (v === '' ? '' : parseFloat(v));
 
 const PRESETS = [
   { label: 'Mini Gel (0.75mm)', resolving: 5.0, stacking: 2.0 },
@@ -21,45 +15,6 @@ const PRESETS = [
   { label: 'Mini Gel (1.5mm)', resolving: 10.0, stacking: 4.0 },
   { label: 'Midi Gel (1.0mm)', resolving: 20.0, stacking: 8.0 },
 ];
-
-const calculateForward = (totalVol: number, targetPercent: number, stockPercent: number, isStacking: boolean): GelRecipe => {
-  if (totalVol <= 0) return { water: 0, buffer: 0, acrylamide: 0, sds: 0, aps: 0, temed: 0, total: 0 };
-
-  // Ratios follow Bio-Rad's handcasting table (Bulletin 6201, Table 2), which specifies
-  // per 15 mL of gel solution: 3.75 mL Tris (1/4), 150 uL 10% SDS (1/100),
-  // 75 uL 10% APS (1/200), and TEMED at 7.5 uL for the resolving gel (1/2000) or
-  // 15 uL for the 4% stacking gel (1/1000). The stacking gel gets twice the TEMED
-  // because its low acrylamide percentage polymerises more slowly.
-  //   Acrylamide volume = (Target % / Stock %) * Total
-  //   Buffer: 1.5 M Tris pH 8.8 (resolving) or 0.5 M Tris pH 6.8 (stacking)
-
-  const acrylamide = (targetPercent / stockPercent) * totalVol;
-  const buffer = totalVol / 4;
-  const sds = totalVol / 100;
-  const aps = totalVol / 200;
-  const temed = isStacking ? totalVol / 1000 : totalVol / 2000;
-  
-  // Water is the remainder
-  const water = totalVol - (acrylamide + buffer + sds + aps + temed);
-  
-  return {
-    water: water < 0 ? 0 : water,
-    buffer,
-    acrylamide,
-    sds,
-    aps,
-    temed,
-    total: totalVol
-  };
-};
-
-// Keeps an empty field empty instead of snapping it to 0, so decimals can be typed.
-const numOrEmpty = (v: string): number | '' => (v === '' ? '' : parseFloat(v));
-
-const calculateReverse = (acrylVol: number, totalVol: number, stockPercent: number): number => {
-    if (totalVol <= 0) return 0;
-    return (acrylVol * stockPercent) / totalVol;
-};
 
 const SdsPage: React.FC = () => {
   const [mode, setMode] = useState<'cast' | 'reverse'>('cast');
@@ -81,10 +36,10 @@ const SdsPage: React.FC = () => {
     setStackVol(PRESETS[presetIdx].stacking);
   };
 
-  const resRecipe = calculateForward(safeNum(resVol), safeNum(resPercent), stockConc, false);
-  const stackRecipe = calculateForward(safeNum(stackVol), safeNum(stackPercent), stockConc, true);
+  const resRecipe = gelRecipe(safeNum(resVol), safeNum(resPercent), stockConc, false);
+  const stackRecipe = gelRecipe(safeNum(stackVol), safeNum(stackPercent), stockConc, true);
   
-  const revResult = calculateReverse(safeNum(revAcrylVol), safeNum(revTotalVol), revStockConc);
+  const revResult = gelPercentFromVolume(safeNum(revAcrylVol), safeNum(revTotalVol), revStockConc);
 
   return (
     <div className="space-y-6">

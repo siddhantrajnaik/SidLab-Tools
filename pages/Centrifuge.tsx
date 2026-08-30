@@ -2,18 +2,7 @@ import React, { useState } from 'react';
 import { RefreshCw, Printer, Info, AlertTriangle, Repeat } from 'lucide-react';
 import { PageHeader, Card, Input, Button } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
-
-/**
- * RCF = 1.118 x 10^-5 * r(cm) * RPM^2
- *
- * The constant is (2*pi/60)^2 / (9.80665 * 100): it converts revolutions per minute to
- * radians per second, divides by standard gravity, and takes the radius in centimetres.
- */
-const K = 1.118e-5;
-
-const rcfFromRpm = (rpm: number, radiusCm: number) => K * radiusCm * rpm * rpm;
-const rpmFromRcf = (rcf: number, radiusCm: number) =>
-  radiusCm > 0 ? Math.sqrt(rcf / (K * radiusCm)) : 0;
+import { rcfFromRpm, rpmFromRcf } from '../lib/labmath';
 
 type Solve = 'rcf' | 'rpm';
 type RadiusUnit = 'cm' | 'mm';

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RefreshCw, Printer, Microscope, Activity, Droplet } from 'lucide-react';
 import { PageHeader, Card, Input, Button } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
+import { cellsPerMl, viability as viabilityPercent, HEMOCYTOMETER_FACTOR } from '../lib/labmath';
 
 interface CellState {
   liveCount: number | '';
@@ -50,16 +51,13 @@ const CellCount: React.FC = () => {
 
   // Formula: (Cells / Squares) * Dilution * 10,000
   // 10,000 comes from 1/(10^-4 mL)
-  const chamberVolFactor = 10000;
-  
-  const liveConc = isValid ? (live / squares) * df * chamberVolFactor : 0;
-  const deadConc = isValid ? (dead / squares) * df * chamberVolFactor : 0;
+  const liveConc = isValid ? cellsPerMl(live, squares, df) : 0;
+  const deadConc = isValid ? cellsPerMl(dead, squares, df) : 0;
   const totalConc = liveConc + deadConc;
 
   const totalCells = totalConc * vol; // Total yield if volume provided
   
-  const totalCounted = live + dead;
-  const viability = totalCounted > 0 ? (live / totalCounted) * 100 : 0;
+  const viability = viabilityPercent(live, dead);
 
   return (
     <div className="space-y-6">
@@ -204,8 +202,8 @@ const CellCount: React.FC = () => {
                       <div className="bg-slate-100 p-5 rounded-xl text-xs font-mono text-slate-600 space-y-2">
                           <div className="font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2">Calculation Logic</div>
                           <p>Avg/Square = {live} / {squares} = {(live/squares).toFixed(2)}</p>
-                          <p>Conc = Avg × Dilution ({df}) × 10,000</p>
-                          <p>     = {(live/squares).toFixed(2)} × {df} × 10,000</p>
+                          <p>Conc = Avg × Dilution ({df}) × {HEMOCYTOMETER_FACTOR.toLocaleString()}</p>
+                          <p>     = {(live/squares).toFixed(2)} × {df} × {HEMOCYTOMETER_FACTOR.toLocaleString()}</p>
                           <p>     = {formatScientific(liveConc)} cells/mL</p>
                       </div>
 

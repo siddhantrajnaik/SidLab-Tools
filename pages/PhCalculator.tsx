@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Activity, FlaskConical, Calculator } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
+import { phStrongAcid, phStrongBase, phWeakAcid, phBuffer } from '../lib/labmath';
 
 const COMMON_BUFFERS = [
   { name: 'Tris (25°C)', pKa: 8.06 },
@@ -42,13 +43,7 @@ const PhCalculator: React.FC = () => {
     }
     setErrors(e => ({ ...e, strong: undefined }));
 
-    let pH = 0;
-    if (strongType === 'acid') {
-      pH = -Math.log10(c);
-    } else {
-      const pOH = -Math.log10(c);
-      pH = 14 - pOH;
-    }
+    const pH = strongType === 'acid' ? phStrongAcid(c) : phStrongBase(c);
 
     setStrongResult({
       pH: pH.toFixed(2),
@@ -74,7 +69,7 @@ const PhCalculator: React.FC = () => {
 
     // Approximation: [H+] = sqrt(Ka * C)
     // pH = 0.5 * (pKa - log[C])
-    const pH = 0.5 * (pka - Math.log10(c));
+    const pH = phWeakAcid(c, pka);
 
     setWeakResult({
       pH: pH.toFixed(2),
@@ -100,7 +95,7 @@ const PhCalculator: React.FC = () => {
     setErrors(e => ({ ...e, buffer: undefined }));
 
     // Henderson-Hasselbalch: pH = pKa + log([A-]/[HA])
-    const pH = pka + Math.log10(base / acid);
+    const pH = phBuffer(pka, base, acid);
 
     setBufferResult({
       pH: pH.toFixed(2),
