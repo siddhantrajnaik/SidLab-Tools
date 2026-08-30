@@ -7,6 +7,7 @@ import {
     calculatePrimerProps, annealingTemp, effectiveMonovalent,
     DEFAULT_SALT, type PrimerResult, type SaltConditions, type Polymerase,
 } from '../lib/tm';
+import { selfDimer, crossDimer, hairpin, structurePenalty, worstSeverity, type Structure } from '../lib/dimer';
 
 // --- Types & Constants ---
 type Mode = 'analyze' | 'design';
@@ -21,6 +22,8 @@ interface CandidatePrimer extends PrimerResult {
 
 interface PrimerPair {
     id: string;
+    /** Worst secondary-structure severity across both primers and their cross-dimer. */
+    structureVerdict: 'ok' | 'warn' | 'bad';
     forward: CandidatePrimer;
     reverse: CandidatePrimer;
     productSize: number;
@@ -98,9 +101,19 @@ const designPrimers = (
             const fClamp = (f.cleanSeq.endsWith('G') || f.cleanSeq.endsWith('C')) ? 0 : 2;
             const rClamp = (r.cleanSeq.endsWith('G') || r.cleanSeq.endsWith('C')) ? 0 : 2;
 
-            const score = tmPenalty + diffPenalty + gcPenalty + fClamp + rClamp;
+            // Secondary structure is the most common reason a well-matched pair still
+            // fails, so it is scored alongside Tm rather than left to the user to spot.
+            const structures = [
+                selfDimer(f.cleanSeq), selfDimer(r.cleanSeq),
+                hairpin(f.cleanSeq), hairpin(r.cleanSeq),
+                crossDimer(f.cleanSeq, r.cleanSeq),
+            ];
+            const structPenalty = structures.reduce((sum, s) => sum + structurePenalty(s), 0);
+
+            const score = tmPenalty + diffPenalty + gcPenalty + fClamp + rClamp + structPenalty;
 
             pairs.push({
+                structureVerdict: worstSeverity(...structures),
                 id: `${f.start}-${r.end}`,
                 forward: f,
                 reverse: r,
@@ -168,6 +181,23 @@ const PrimerAnalysis: React.FC = () => {
     const fwd = useMemo(() => calculatePrimerProps(fwdInput, primerConc, salt), [fwdInput, primerConc, salt]);
     const rev = useMemo(() => calculatePrimerProps(revInput, primerConc, salt), [revInput, primerConc, salt]);
     const analysisTmDiff = fwd.isValid && rev.isValid ? Math.abs(fwd.tmNN - rev.tmNN) : 0;
+
+    const structures = useMemo(() => {
+        if (!fwd.isValid && !rev.isValid) return [];
+        const out: { label: string; s: Structure }[] = [];
+        if (fwd.isValid) {
+            out.push({ label: 'Forward self-dimer', s: selfDimer(fwd.cleanSeq) });
+            out.push({ label: 'Forward hairpin', s: hairpin(fwd.cleanSeq) });
+        }
+        if (rev.isValid) {
+            out.push({ label: 'Reverse self-dimer', s: selfDimer(rev.cleanSeq) });
+            out.push({ label: 'Reverse hairpin', s: hairpin(rev.cleanSeq) });
+        }
+        if (fwd.isValid && rev.isValid) {
+            out.push({ label: 'Cross-dimer (F + R)', s: crossDimer(fwd.cleanSeq, rev.cleanSeq) });
+        }
+        return out;
+    }, [fwd, rev]);
     const analysisTa = useMemo(() => {
         if (!fwd.isValid || !rev.isValid) return null;
         return annealingTemp(polymerase, fwd, rev);
@@ -317,7 +347,13 @@ const PrimerAnalysis: React.FC = () => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="text-right flex items-center gap-3">
+                                                    <span
+                                                        title={pair.structureVerdict === 'ok' ? 'No significant secondary structure' : 'Secondary structure detected'}
+                                                        className={`w-2 h-2 rounded-full ${
+                                                            pair.structureVerdict === 'ok' ? 'bg-emerald-400'
+                                                                : pair.structureVerdict === 'warn' ? 'bg-amber-400' : 'bg-red-400'}`}
+                                                    />
                                                     {selectedPairId === pair.id ? <CheckCircle className="text-emerald-400" size={20} /> : <ArrowRight className="text-white/20" size={20} />}
                                                 </div>
                                             </div>
@@ -517,6 +553,48 @@ const PrimerAnalysis: React.FC = () => {
                                         <span className="text-slate-900">Entropic + Mg²⁺ equiv.</span>
                                     </div>
                                 </div>
+
+                                {structures.length > 0 && (
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-baseline justify-between">
+                                            <h4 className="text-sm font-bold text-slate-900">Secondary Structure</h4>
+                                            <span className="text-[11px] text-slate-400">ΔG°37, kcal/mol</span>
+                                        </div>
+                                        {structures.map(({ label, s }) => (
+                                            <div
+                                                key={label}
+                                                className={`p-3 rounded-xl border text-sm ${
+                                                    s.severity === 'ok' ? 'bg-white border-slate-100'
+                                                        : s.severity === 'warn' ? 'bg-amber-50 border-amber-100'
+                                                            : 'bg-red-50 border-red-100'}`}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-slate-700 flex items-center">
+                                                        {s.severity === 'ok'
+                                                            ? <CheckCircle size={14} className="mr-1.5 text-emerald-500" />
+                                                            : <AlertCircle size={14} className={`mr-1.5 ${s.severity === 'warn' ? 'text-amber-500' : 'text-red-500'}`} />}
+                                                        {label}
+                                                        {s.involves3Prime && s.severity !== 'ok' && (
+                                                            <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase">3′ end</span>
+                                                        )}
+                                                    </span>
+                                                    <span className="font-mono font-bold text-slate-900">
+                                                        {s.pairs === 0 ? 'none' : s.dG.toFixed(1)}
+                                                    </span>
+                                                </div>
+                                                {s.pairs > 0 && s.severity !== 'ok' && (
+                                                    <pre className="mt-2 text-[10px] leading-tight text-slate-600 overflow-x-auto font-mono">{s.diagram.join('\n')}</pre>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                                            Limits follow IDT's guidance: weaker than −9 kcal/mol internally, −5 at the
+                                            3′ end, where polymerase can extend a paired terminus. A stacking-energy
+                                            screen over contiguous pairing — it does not model loops or bulges the way
+                                            mfold does, so treat it as a flag, not a prediction.
+                                        </p>
+                                    </div>
+                                )}
 
                                 {analysisTmDiff > 5 && (
                                     <div className="flex items-start p-3 bg-amber-50 text-amber-800 rounded-lg text-sm border border-amber-100">
