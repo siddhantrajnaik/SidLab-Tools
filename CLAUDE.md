@@ -29,6 +29,7 @@ lib/            pure, tested calculation modules — no React
   labmath.ts    centrifugation, gels, Beer-Lambert, A260, ligation, solutions, pH
   tm.ts         nearest-neighbour thermodynamics, salt correction, annealing rules
   dimer.ts      self-dimer, cross-dimer, hairpin screening
+  restriction.ts enzyme table (from REBASE), both-strand site finding, digestion
   sequence.ts   cleaning, complement, genetic code, translation, average MWs
   *.test.ts     vitest, asserting published reference values
 pages/          one component per tool; UI only, imports the maths from lib/
@@ -90,8 +91,8 @@ a proxy the site calls, not into the bundle.
 
 ## Known gaps
 
-- The virtual gel in the restriction finder uses linear migration; real gels are
-  logarithmic.
-- The bundle is a single ~650 KB chunk with no route splitting.
-- Restriction finder ships 12 enzymes, all palindromic; non-palindromic sites would need
-  a both-strand scan.
+- The bundle is a single ~660 KB chunk with no route splitting.
+- The primer designer's dimer screen is a stacking-energy heuristic over contiguous
+  pairing; it does not model bulges, internal loops, or hairpin loop entropy the way
+  mfold does.
+- The Protocols page ships only two protocols.
