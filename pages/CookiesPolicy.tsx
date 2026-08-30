@@ -47,7 +47,7 @@ const CookiesPolicy: React.FC = () => {
                     <Shield size={20} className="text-slate-400" />
                     Admin Settings
                 </h3>
-                <p className="text-slate-600 leading-relaxed">If you use the Admin panel to upload banners or configure the dashboard, these images are stored locally on your device.</p>
+                <p className="text-slate-600 leading-relaxed">Your calculator inputs and preferences are stored locally on your device so the tools remember them between visits. Nothing is uploaded to a server.</p>
             </div>
           </div>
 

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, Disc3, Droplets, Link2, ArrowLeftRight } from 'lucide-react';
 import { DilutionIcon, MolarityIcon, PercentIcon, PhIcon, ProteinIcon, ProtocolsIcon, OopsIcon, PrimerIcon, GelIcon, CellIcon, LogIcon, TimerIcon, FastaIcon, ScissorsIcon, IllustratorIcon } from '../components/ScienceIcons';
-import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt } from '../components/ToolArt';
+import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt } from '../components/ToolArt';
 import { BrandMark } from '../components/ToolArt';
 import type { ArtProps } from '../components/ToolArt';
-import { AdBanner } from '../components/AdBanner';
 
 interface Tool {
   id: string;
@@ -20,6 +19,46 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  {
+    id: 'centrifuge',
+    title: 'Centrifuge Converter',
+    description: 'RCF \u2194 RPM for any rotor',
+    path: '/centrifuge',
+    icon: Disc3,
+    art: CentrifugeArt,
+    color: 'orange',
+    keywords: ['centrifuge', 'rcf', 'rpm', 'g force', 'spin', 'rotor', 'radius', 'relative centrifugal force']
+  },
+  {
+    id: 'nucleic',
+    title: 'DNA / RNA Quant',
+    description: 'A260 concentration & purity',
+    path: '/nucleic',
+    icon: Droplets,
+    art: NucleicArt,
+    color: 'teal',
+    keywords: ['dna', 'rna', 'nanodrop', 'a260', 'a280', 'a230', 'concentration', 'purity', 'quantification', 'nucleic', 'spectrophotometer']
+  },
+  {
+    id: 'ligation',
+    title: 'Ligation Calculator',
+    description: 'Insert : vector molar ratio',
+    path: '/ligation',
+    icon: Link2,
+    art: LigationArt,
+    color: 'indigo',
+    keywords: ['ligation', 'cloning', 'insert', 'vector', 'molar ratio', 'ligase', 'pmol', 'plasmid']
+  },
+  {
+    id: 'seqtools',
+    title: 'Sequence Toolkit',
+    description: 'Reverse complement & translate',
+    path: '/seqtools',
+    icon: ArrowLeftRight,
+    art: SeqArt,
+    color: 'purple',
+    keywords: ['reverse complement', 'translate', 'translation', 'protein', 'orf', 'codon', 'sequence', 'gc content', 'dna']
+  },
   {
     id: 'dilution',
     title: 'Dilution Calculator',
@@ -319,7 +358,6 @@ const Dashboard: React.FC = () => {
     <div className="space-y-10">
       
       {/* 1. HERO AD BANNER */}
-      <AdBanner zone="hero" className="mb-8" />
 
       {/* Hero Section */}
       <div className="text-center max-w-3xl mx-auto pt-2 pb-4">
@@ -375,7 +413,6 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 2. MIDDLE AD BANNER */}
-      <AdBanner zone="middle" className="my-12" />
 
       {/* Tools Grid */}
       <div>
@@ -439,7 +476,6 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 3. FOOTER AD BANNER */}
-      <AdBanner zone="footer" className="mt-16" />
       
       {/* Offline Badge */}
       <div className="flex justify-center pb-8 pt-4">

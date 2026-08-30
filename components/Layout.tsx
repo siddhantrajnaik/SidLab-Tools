@@ -164,7 +164,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
 
                 <div className="flex space-x-6 text-sm font-medium text-slate-500 items-center">
-                    <NavLink to="/admin" className="hover:text-slate-900">Admin</NavLink>
                     <a href="#" className="hover:text-slate-900">Terms</a>
                     <a href="#" className="hover:text-slate-900">Privacy</a>
                     <NavLink to="/cookies" className="hover:text-slate-900">Cookies</NavLink>

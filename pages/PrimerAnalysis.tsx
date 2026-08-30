@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Dna, Printer, AlertCircle, Thermometer, Layers, FlaskConical, CheckCircle, XCircle, RefreshCw, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import { PageHeader, Card, Button, Input } from '../components/UI';
 import { safeNum } from '../utils';
+import { cleanSequence, reverseComplement } from '../lib/sequence';
 
 // --- Types & Constants ---
 type Mode = 'analyze' | 'design';
@@ -75,14 +76,8 @@ const effectiveMonovalent = (salt: SaltConditions): number => {
 };
 
 // --- Core Algorithms ---
-const cleanSequence = (seq: string): string => seq.replace(/[^a-zA-Z]/g, '').toUpperCase();
-
-const getComplement = (base: string) => {
-    const map: Record<string, string> = { A: 'T', T: 'A', G: 'C', C: 'G', U: 'A', N: 'N' };
-    return map[base] || 'N';
-};
-
-const reverseComplement = (seq: string) => seq.split('').reverse().map(getComplement).join('');
+// cleanSequence and reverseComplement live in lib/sequence.ts, shared with the other
+// sequence pages rather than reimplemented here.
 
 const calculatePrimerProps = (rawSeq: string, primerConcNm: number, salt: SaltConditions = DEFAULT_SALT): PrimerResult => {
     const cleanSeq = cleanSequence(rawSeq);

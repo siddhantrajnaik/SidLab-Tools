@@ -187,6 +187,54 @@ export const IllustratorArt: React.FC<ArtProps> = ({ accent, tint, className }) 
   </Frame>
 );
 
+/** Centrifuge — a rotor spinning with tubes loaded. */
+export const CentrifugeArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <circle cx="48" cy="50" r="30" fill={tint} stroke={accent} strokeWidth="4" />
+    <g transform="rotate(35 48 50)">
+      <rect x="43" y="24" width="10" height="15" rx="5" fill={accent} />
+      <rect x="43" y="61" width="10" height="15" rx="5" fill={accent} />
+    </g>
+    <circle cx="48" cy="50" r="5" fill={accent} />
+    <path d="M78 12a38 38 0 0 1 9 18" stroke={accent} strokeWidth="4" />
+    <path d="M88 21l-1 10-10-2" stroke={accent} strokeWidth="4" />
+  </Frame>
+);
+
+/** Nucleic acid quantification — a sample drop on a spectrophotometer pedestal. */
+export const NucleicArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <rect x="22" y="70" width="52" height="12" rx="5" fill={accent} />
+    <path d="M48 62v8" stroke={accent} strokeWidth="4" />
+    <path d="M48 30c0 0-11 14-11 21a11 11 0 0 0 22 0c0-7-11-21-11-21z" fill={tint} stroke={accent} strokeWidth="4" />
+    <rect x="38" y="8" width="20" height="12" rx="5" fill={accent} />
+    <path d="M48 20v6" stroke={accent} strokeWidth="4" strokeDasharray="3 4" />
+  </Frame>
+);
+
+/** Ligation — an insert dropping into a cut vector. */
+export const LigationArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M34 30a26 26 0 1 0 28 0" fill="none" stroke={tint} strokeWidth="11" />
+    <path d="M34 30a26 26 0 1 0 28 0" fill="none" stroke={accent} strokeWidth="4" />
+    <rect x="32" y="6" width="32" height="12" rx="6" fill={accent} />
+    <path d="M40 24v6M56 24v6" stroke={accent} strokeWidth="4" />
+  </Frame>
+);
+
+/** Sequence toolkit — two antiparallel strands. */
+export const SeqArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <rect x="10" y="24" width="76" height="16" rx="8" fill={tint} />
+    <path d="M20 32h44" stroke={accent} strokeWidth="4" />
+    <path d="M58 26l8 6-8 6" stroke={accent} strokeWidth="4" />
+    <rect x="10" y="56" width="76" height="16" rx="8" fill={tint} />
+    <path d="M76 64H32" stroke={accent} strokeWidth="4" />
+    <path d="M38 58l-8 6 8 6" stroke={accent} strokeWidth="4" />
+    <path d="M28 42v12M48 42v12M68 42v12" stroke={accent} strokeWidth="3.5" opacity="0.5" />
+  </Frame>
+);
+
 /** The brand mark: a flask whose body is the "S" of Sidlab. */
 export const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" className={className} fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

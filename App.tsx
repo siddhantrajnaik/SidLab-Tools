@@ -16,11 +16,28 @@ import Logarithm from './pages/Logarithm';
 import LabTimer from './pages/LabTimer';
 import FastaCleaner from './pages/FastaCleaner';
 import RestrictionFinder from './pages/RestrictionFinder';
-import Admin from './pages/Admin';
 import CookiesPolicy from './pages/CookiesPolicy';
 import AiIllustrator from './pages/AiIllustrator';
+import Centrifuge from './pages/Centrifuge';
+import NucleicAcid from './pages/NucleicAcid';
+import Ligation from './pages/Ligation';
+import SeqToolkit from './pages/SeqToolkit';
 
 const App: React.FC = () => {
+  // The removed ad panel stored banner images as base64 in localStorage, up to 2 MB per
+  // zone. Left behind they would sit unreachable and eat into the ~5 MB origin quota that
+  // the calculators use to remember their inputs, so clear them once on load.
+  useEffect(() => {
+    try {
+      ['labsuite_ad_hero', 'labsuite_ad_middle', 'labsuite_ad_footer'].forEach(k =>
+        window.localStorage.removeItem(k)
+      );
+      window.sessionStorage.removeItem('labsuite_admin_auth');
+    } catch {
+      // Storage can be unavailable (private mode, blocked cookies); nothing to do.
+    }
+  }, []);
+
   useEffect(() => {
     // Disable Right Click
     const handleContextMenu = (e: MouseEvent) => {
@@ -73,9 +90,12 @@ const App: React.FC = () => {
           <Route path="/timer" element={<LabTimer />} />
           <Route path="/fasta" element={<FastaCleaner />} />
           <Route path="/restriction" element={<RestrictionFinder />} />
-          <Route path="/admin" element={<Admin />} />
           <Route path="/cookies" element={<CookiesPolicy />} />
           <Route path="/ai-image" element={<AiIllustrator />} />
+          <Route path="/centrifuge" element={<Centrifuge />} />
+          <Route path="/nucleic" element={<NucleicAcid />} />
+          <Route path="/ligation" element={<Ligation />} />
+          <Route path="/seqtools" element={<SeqToolkit />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
