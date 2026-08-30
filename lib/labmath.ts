@@ -86,6 +86,30 @@ export const nucleicConcentration = (
 ): number => (pathCm > 0 ? (a260 * A260_FACTORS[species] * dilution) / pathCm : 0);
 
 // ---------------------------------------------------------------------------
+// Gel electrophoresis
+// ---------------------------------------------------------------------------
+
+/**
+ * Relative migration of a DNA fragment, 0 at the well and 1 at the dye front.
+ *
+ * Across a gel's resolving range, migration distance is linear in log10(size) — which is
+ * why fragment sizes are read off a semi-log standard curve. Positioning bands linearly
+ * in size instead crushes everything small into the bottom of the lane and spreads the
+ * large fragments apart, which is the opposite of how a gel actually looks.
+ *
+ * `maxBp` and `minBp` bound the resolving range; anything outside is clamped, since in
+ * practice it either stays in the well or runs off the end.
+ */
+export const gelMigration = (bp: number, maxBp: number, minBp: number): number => {
+  if (bp <= 0 || minBp <= 0 || maxBp <= minBp) return 0;
+  const clamped = Math.min(Math.max(bp, minBp), maxBp);
+  return (Math.log10(maxBp) - Math.log10(clamped)) / (Math.log10(maxBp) - Math.log10(minBp));
+};
+
+/** A 1 kb ladder, for the marker lane. */
+export const LADDER_1KB = [10000, 8000, 6000, 5000, 4000, 3000, 2000, 1500, 1000, 500];
+
+// ---------------------------------------------------------------------------
 // Ligation
 // ---------------------------------------------------------------------------
 

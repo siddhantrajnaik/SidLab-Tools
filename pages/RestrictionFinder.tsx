@@ -1,109 +1,39 @@
 import React, { useState, useMemo } from 'react';
 import { Scissors, Circle, ArrowLeftRight } from 'lucide-react';
 import { PageHeader, Card } from '../components/UI';
-
-// --- DATA: Enzyme Dictionary ---
-interface Enzyme {
-  name: string;
-  seq: string;
-  cutOffset: number; // 0-based index relative to seq start where cut occurs on top strand
-}
-
-const ENZYMES: Enzyme[] = [
-  { name: 'EcoRI', seq: 'GAATTC', cutOffset: 1 },    // G^AATTC
-  { name: 'BamHI', seq: 'GGATCC', cutOffset: 1 },    // G^GATCC
-  { name: 'HindIII', seq: 'AAGCTT', cutOffset: 1 },  // A^AGCTT
-  { name: 'NotI', seq: 'GCGGCCGC', cutOffset: 2 },   // GC^GGCCGC
-  { name: 'XbaI', seq: 'TCTAGA', cutOffset: 1 },     // T^CTAGA
-  { name: 'SpeI', seq: 'ACTAGT', cutOffset: 1 },     // A^CTAGT
-  { name: 'PstI', seq: 'CTGCAG', cutOffset: 5 },     // CTGCA^G
-  { name: 'SalI', seq: 'GTCGAC', cutOffset: 1 },     // G^TCGAC
-  { name: 'EcoRV', seq: 'GATATC', cutOffset: 3 },    // GAT^ATC (Blunt)
-  { name: 'XhoI', seq: 'CTCGAG', cutOffset: 1 },     // C^TCGAG
-  { name: 'KpnI', seq: 'GGTACC', cutOffset: 5 },     // GGTAC^C
-  { name: 'SacI', seq: 'GAGCTC', cutOffset: 5 },     // GAGCT^C
-];
-
-interface CutSite {
-  enzyme: Enzyme;
-  pos: number; // 0-based index in the sequence where cut happens (after this index)
-  strand: 'forward' | 'reverse';
-  recStart: number; // 0-based index where recognition sequence starts
-}
+import { cleanSequence } from '../lib/sequence';
+import { ENZYMES, findSites, digest, isPalindromic, overhangLabel } from '../lib/restriction';
+import { gelMigration, LADDER_1KB } from '../lib/labmath';
 
 const RestrictionFinder: React.FC = () => {
   const [sequence, setSequence] = useState('');
   const [isCircular, setIsCircular] = useState(false);
   const [selectedEnzyme, setSelectedEnzyme] = useState<string | 'ALL'>('ALL');
 
-  // --- ANALYSIS LOGIC ---
   const { cutSites, fragments, seqLength } = useMemo(() => {
-    const cleanSeq = sequence.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    const cleanSeq = cleanSequence(sequence);
     const len = cleanSeq.length;
     if (len === 0) return { cutSites: [], fragments: [], seqLength: 0 };
 
-    const sites: CutSite[] = [];
-    
-    // Which enzymes to check?
-    const enzymesToCheck = selectedEnzyme === 'ALL' 
-      ? ENZYMES 
+    const enzymesToCheck = selectedEnzyme === 'ALL'
+      ? ENZYMES
       : ENZYMES.filter(e => e.name === selectedEnzyme);
 
-    // Every enzyme in the table above is palindromic, so a top-strand scan finds
-    // both-strand sites. On a circular molecule a site can straddle the origin, so
-    // scan the sequence with its own head appended and wrap the coordinates back.
-    const searchSeq = isCircular
-      ? cleanSeq + cleanSeq.slice(0, Math.max(...ENZYMES.map(e => e.seq.length)) - 1)
-      : cleanSeq;
-
-    enzymesToCheck.forEach(enzyme => {
-      let pos = searchSeq.indexOf(enzyme.seq);
-      while (pos !== -1) {
-        // Only accept matches that start inside the real sequence, so a site is not counted twice.
-        if (pos < len) {
-          sites.push({
-            enzyme,
-            pos: (pos + enzyme.cutOffset) % len, // Cut is after this index
-            strand: 'forward',
-            recStart: pos
-          });
-        }
-        pos = searchSeq.indexOf(enzyme.seq, pos + 1);
-      }
-    });
-
-    sites.sort((a, b) => a.pos - b.pos);
-
-    // Calculate Fragments (Virtual Digest)
-    // Only meaningful if one enzyme is selected, or we assume simultaneous digest
-    let frags: { start: number; end: number; length: number }[] = [];
-    
-    if (sites.length > 0) {
-       // For circular DNA, we need to wrap around
-       if (isCircular) {
-         // Two enzymes cutting at the same position must not create a 0 bp fragment.
-         const cuts = [...new Set(sites.map(s => s.pos))].sort((a, b) => a - b);
-         for (let i = 0; i < cuts.length - 1; i++) {
-            frags.push({ start: cuts[i], end: cuts[i+1], length: cuts[i+1] - cuts[i] });
-         }
-         // Wrap frag: with a single cut this is the whole (now linearised) molecule.
-         const last = cuts[cuts.length - 1];
-         const first = cuts[0];
-         frags.push({ start: last, end: first, length: (len - last) + first });
-       } else {
-         const sortedCuts = [0, ...sites.map(s => s.pos), len];
-         const uniqueCuts = [...new Set(sortedCuts)].sort((a,b) => a-b);
-         
-         for (let i = 0; i < uniqueCuts.length - 1; i++) {
-             frags.push({ start: uniqueCuts[i], end: uniqueCuts[i+1], length: uniqueCuts[i+1] - uniqueCuts[i] });
-         }
-       }
-    } else {
-        frags.push({ start: 0, end: len, length: len });
-    }
-
-    return { cutSites: sites, fragments: frags, seqLength: len };
+    const sites = findSites(cleanSeq, enzymesToCheck, isCircular);
+    return {
+      cutSites: sites,
+      fragments: digest(sites.map(s => s.cut), len, isCircular),
+      seqLength: len,
+    };
   }, [sequence, isCircular, selectedEnzyme]);
+
+  // Bands are placed on a log scale, so the gel needs a range wide enough to hold both
+  // the fragments and the ladder.
+  const gelRange = useMemo(() => {
+    const sizes = [...fragments.map(f => f.length), ...LADDER_1KB].filter(n => n > 0);
+    if (!sizes.length) return { max: 10000, min: 100 };
+    return { max: Math.max(...sizes, 1000), min: Math.min(...sizes, 100) };
+  }, [fragments]);
 
   // --- RENDERING ---
 
@@ -156,6 +86,7 @@ const RestrictionFinder: React.FC = () => {
                             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${selectedEnzyme === e.name ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/30' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
                         >
                             {e.name}
+                            {!isPalindromic(e.site) && <span className="ml-1 opacity-60 text-[10px]">IIS</span>}
                         </button>
                       ))}
                    </div>
@@ -181,7 +112,7 @@ const RestrictionFinder: React.FC = () => {
                           {!isCircular ? (
                              /* Linear Map Markers */
                              cutSites.map((site, i) => {
-                                const pct = (site.pos / seqLength) * 100;
+                                const pct = (site.cut / seqLength) * 100;
                                 const isTop = i % 2 === 0; 
                                 return (
                                     <div 
@@ -191,7 +122,7 @@ const RestrictionFinder: React.FC = () => {
                                     >
                                         <div className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold bg-white px-2 py-1 rounded-lg shadow-md border border-pink-100 opacity-100 transition-opacity z-20 ${isTop ? '-top-10' : '-bottom-10'}`}>
                                             <span className="text-pink-600">{site.enzyme.name}</span>
-                                            <span className="text-slate-400 ml-1 text-[10px]">{site.pos}</span>
+                                            <span className="text-slate-400 ml-1 text-[10px]">{site.cut}</span>
                                         </div>
                                     </div>
                                 );
@@ -199,7 +130,7 @@ const RestrictionFinder: React.FC = () => {
                           ) : (
                               /* Circular Map Markers (Simplified Radial) */
                               cutSites.map((site, i) => {
-                                  const deg = (site.pos / seqLength) * 360;
+                                  const deg = (site.cut / seqLength) * 360;
                                   return (
                                     <div 
                                         key={i}
@@ -241,11 +172,18 @@ const RestrictionFinder: React.FC = () => {
                        {fragments.length > 0 ? (
                            <div className="bg-gradient-to-b from-indigo-950 to-purple-950 rounded-2xl p-4 h-64 overflow-y-auto flex justify-center space-x-10 shadow-inner">
                                {/* Lane 1: Marker (Fake) */}
-                               <div className="flex flex-col items-center w-12 opacity-60">
-                                   <span className="text-[10px] text-indigo-200 mb-2 font-bold uppercase tracking-wider">Marker</span>
+                               <div className="flex flex-col items-center w-16 opacity-70">
+                                   <span className="text-[10px] text-indigo-200 mb-2 font-bold uppercase tracking-wider">1 kb</span>
                                    <div className="w-full h-full bg-white/5 relative rounded-lg border border-white/10 backdrop-blur-sm">
-                                        {[1000, 800, 600, 400, 200, 100].map(bp => (
-                                            <div key={bp} className="absolute w-full h-[1px] bg-white/40" style={{ top: `${(1 - (bp/1200)) * 100}%` }}></div>
+                                        {LADDER_1KB.map(bp => (
+                                            <div
+                                                key={bp}
+                                                className="absolute w-full flex items-center"
+                                                style={{ top: `${gelMigration(bp, gelRange.max, gelRange.min) * 100}%` }}
+                                            >
+                                                <div className="flex-1 h-[1px] bg-white/40" />
+                                                <span className="text-[8px] text-white/40 ml-1 font-mono">{bp >= 1000 ? `${bp / 1000}k` : bp}</span>
+                                            </div>
                                         ))}
                                    </div>
                                </div>
@@ -254,20 +192,16 @@ const RestrictionFinder: React.FC = () => {
                                <div className="flex flex-col items-center w-16">
                                    <span className="text-[10px] text-pink-200 mb-2 font-bold uppercase tracking-wider">Sample</span>
                                    <div className="w-full h-full bg-white/5 relative rounded-lg border border-white/10 backdrop-blur-sm shadow-lg">
-                                        {fragments.map((frag, i) => {
-                                            // Simple visual mapping
-                                            const visLength = Math.min(frag.length, 1200);
-                                            const topPct = (1 - (visLength / 1200)) * 100; 
-                                            // Simulate band intensity/thickness based on length (smaller = thicker/diffused in reality, but keeping constant here for clarity)
-                                            return (
-                                                <div 
-                                                    key={i} 
-                                                    className="absolute left-1 right-1 h-1.5 bg-pink-400 rounded-sm shadow-[0_0_10px_rgba(244,114,182,0.8)]" 
-                                                    style={{ top: `${topPct}%` }}
-                                                    title={`${frag.length} bp`}
-                                                ></div>
-                                            );
-                                        })}
+                                        {fragments.map((frag, i) => (
+                                            // Migration is linear in log10(size), so bands are placed on a log
+                                            // scale — the same relationship a semi-log standard curve uses.
+                                            <div
+                                                key={i}
+                                                className="absolute left-1 right-1 h-1.5 bg-pink-400 rounded-sm shadow-[0_0_10px_rgba(244,114,182,0.8)]"
+                                                style={{ top: `${gelMigration(frag.length, gelRange.max, gelRange.min) * 100}%` }}
+                                                title={`${frag.length} bp`}
+                                            ></div>
+                                        ))}
                                    </div>
                                </div>
                            </div>
@@ -291,19 +225,29 @@ const RestrictionFinder: React.FC = () => {
                                <tr>
                                    <th className="px-3 py-3 bg-slate-50 rounded-tl-lg">Enzyme</th>
                                    <th className="px-3 py-3 bg-slate-50">Cut At</th>
-                                   <th className="px-3 py-3 bg-slate-50 rounded-tr-lg">Sequence</th>
+                                   <th className="px-3 py-3 bg-slate-50">Site</th>
+                                   <th className="px-3 py-3 bg-slate-50 rounded-tr-lg">Ends</th>
                                </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-100">
                                {cutSites.length > 0 ? cutSites.map((site, i) => (
                                    <tr key={i} className="hover:bg-pink-50 transition-colors group">
-                                       <td className="px-3 py-2 font-bold text-slate-700 group-hover:text-pink-700">{site.enzyme.name}</td>
-                                       <td className="px-3 py-2 font-mono text-pink-500 font-bold">{site.pos}</td>
-                                       <td className="px-3 py-2 font-mono text-xs text-slate-400">{site.enzyme.seq}</td>
+                                       <td className="px-3 py-2 font-bold text-slate-700 group-hover:text-pink-700">
+                                           {site.enzyme.name}
+                                           {!isPalindromic(site.enzyme.site) && (
+                                               <span
+                                                   title={site.strand === 'top' ? 'Site on the forward strand' : 'Site on the reverse strand'}
+                                                   className="ml-1.5 font-mono text-[10px] text-slate-400"
+                                               >{site.strand === 'top' ? '+' : '−'}</span>
+                                           )}
+                                       </td>
+                                       <td className="px-3 py-2 font-mono text-pink-500 font-bold">{site.cut}</td>
+                                       <td className="px-3 py-2 font-mono text-xs text-slate-400">{site.enzyme.site}</td>
+                                       <td className="px-3 py-2 text-xs text-slate-500 leading-tight">{overhangLabel(site.overhang)}</td>
                                    </tr>
                                )) : (
                                    <tr>
-                                       <td colSpan={3} className="px-3 py-8 text-center text-slate-400 italic">No sites found</td>
+                                       <td colSpan={4} className="px-3 py-8 text-center text-slate-400 italic">No sites found</td>
                                    </tr>
                                )}
                            </tbody>

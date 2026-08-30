@@ -8,6 +8,7 @@ import {
   cellsPerMl, viability,
   phStrongAcid, phStrongBase, phWeakAcid, phBuffer,
   percentTfromA, aFromPercentT,
+  gelMigration, LADDER_1KB,
 } from './labmath';
 import { AVG_MW, pmolDsDNA } from './sequence';
 
@@ -168,5 +169,47 @@ describe('pH', () => {
   });
   it('a 2:1 base:acid ratio adds log10(2) ≈ 0.30', () => {
     expect(phBuffer(4.76, 2, 1)).toBeCloseTo(5.06, 2);
+  });
+});
+
+describe('gel migration', () => {
+  it('puts the largest fragment at the well and the smallest at the front', () => {
+    expect(gelMigration(10000, 10000, 100)).toBeCloseTo(0, 9);
+    expect(gelMigration(100, 10000, 100)).toBeCloseTo(1, 9);
+  });
+
+  it('places the geometric mean halfway — the defining property of a log scale', () => {
+    // sqrt(10000 * 100) = 1000. Under the old linear scaling this sat at 0.91.
+    expect(gelMigration(1000, 10000, 100)).toBeCloseTo(0.5, 9);
+  });
+
+  it('spaces each tenfold drop in size equally', () => {
+    const a = gelMigration(1000, 10000, 10);
+    const b = gelMigration(100, 10000, 10);
+    const c = gelMigration(10, 10000, 10);
+    expect(b - a).toBeCloseTo(c - b, 9);
+  });
+
+  it('clamps fragments outside the resolving range', () => {
+    expect(gelMigration(50000, 10000, 100)).toBeCloseTo(0, 9);
+    expect(gelMigration(10, 10000, 100)).toBeCloseTo(1, 9);
+  });
+
+  it('is monotonic: a bigger fragment never migrates further', () => {
+    const sizes = [100, 250, 500, 1000, 3000, 8000];
+    const migrations = sizes.map(s => gelMigration(s, 10000, 100));
+    for (let i = 1; i < migrations.length; i++) {
+      expect(migrations[i]).toBeLessThan(migrations[i - 1]);
+    }
+  });
+
+  it('returns 0 rather than NaN for degenerate ranges', () => {
+    expect(gelMigration(0, 10000, 100)).toBe(0);
+    expect(gelMigration(500, 100, 100)).toBe(0);
+  });
+
+  it('ships a descending 1 kb ladder', () => {
+    expect(LADDER_1KB[0]).toBe(10000);
+    expect([...LADDER_1KB].sort((a, b) => b - a)).toEqual(LADDER_1KB);
   });
 });
