@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Download, Sparkles, RefreshCw, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
 import { PageHeader, Card, Button, Select } from '../components/UI';
+import { usePersistedState } from '../utils';
 
 const PRESETS = [
   { id: 'diagram', label: 'Scientific Diagram', prompt: 'A clean, 2D vector-style scientific diagram of ' },
@@ -25,6 +26,15 @@ const AiIllustrator: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Each visitor supplies their own key, held only in their own browser.
+  //
+  // The alternative — a single key baked in via VITE_* — would be inlined into the public
+  // bundle at build time, so anyone loading the page could read it and spend the owner's
+  // quota. A static site has nowhere to hide a shared secret; the only way to keep one is
+  // to proxy the call through a server, which this deployment does not have.
+  const [apiKey, setApiKey] = usePersistedState<string>('labsuite_gemini_key', '');
+  const [showKey, setShowKey] = useState(false);
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
@@ -33,17 +43,11 @@ const AiIllustrator: React.FC = () => {
     setImage(null);
 
     try {
-      // 1. Initialize Gemini Client
-      // NOTE: this is a static client-side app, so the key ships inside the JS bundle and is
-      // readable by anyone who loads the page. Use a key restricted to this origin with a hard
-      // quota, or proxy the call through a small server before exposing this publicly.
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-      if (!apiKey) {
-          throw new Error("API key is missing. Set VITE_GEMINI_API_KEY in your .env file and rebuild.");
+      if (!apiKey.trim()) {
+          throw new Error('Add your Google AI Studio API key below to generate images.');
       }
 
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
 
       // 2. Construct Prompt
       const selectedPreset = PRESETS.find(p => p.id === preset);
@@ -151,6 +155,42 @@ const AiIllustrator: React.FC = () => {
                     />
                  </div>
 
+                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Your API Key</label>
+                        <button
+                            onClick={() => setShowKey(v => !v)}
+                            className="text-[11px] font-bold text-slate-400 hover:text-slate-700"
+                        >
+                            {showKey ? 'Hide' : 'Show'}
+                        </button>
+                    </div>
+                    <input
+                        type={showKey ? 'text' : 'password'}
+                        value={apiKey}
+                        onChange={e => setApiKey(e.target.value)}
+                        placeholder="Paste a Google AI Studio key"
+                        spellCheck={false}
+                        autoComplete="off"
+                        className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-900 font-mono focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                        Stored only in this browser and sent straight to Google — it never reaches
+                        our servers, because there are none. Get a free key at{' '}
+                        <a
+                            href="https://aistudio.google.com/apikey"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-violet-600 font-semibold hover:underline"
+                        >aistudio.google.com</a>.
+                        {apiKey.trim() && (
+                            <button onClick={() => setApiKey('')} className="ml-2 text-slate-400 hover:text-red-500 font-semibold">
+                                Forget key
+                            </button>
+                        )}
+                    </p>
+                 </div>
+
                  {error && (
                     <div className="p-4 bg-red-50 rounded-xl flex items-start text-red-700 text-sm border border-red-100">
                         <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
@@ -160,7 +200,7 @@ const AiIllustrator: React.FC = () => {
 
                  <Button 
                     onClick={handleGenerate} 
-                    disabled={loading || !prompt.trim()}
+                    disabled={loading || !prompt.trim() || !apiKey.trim()}
                     size="lg" 
                     className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 text-white"
                  >

@@ -1,14 +1,6 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  /**
-   * Gemini API key used by the AI Illustrator page.
-   * This is embedded in the client bundle at build time and is therefore public —
-   * restrict it by HTTP referrer and quota, or move the call behind a server.
-   */
-  readonly VITE_GEMINI_API_KEY?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+// No VITE_* secrets are declared on purpose. Vite inlines those into the public bundle at
+// build time, so a shared API key placed here would be readable by anyone loading the
+// site. The AI Illustrator asks each visitor for their own key instead, kept in their own
+// browser. See pages/AiIllustrator.tsx.

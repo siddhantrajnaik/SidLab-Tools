@@ -80,10 +80,16 @@ precaches those itself; globbing them too produced 16 precache entries for 10 fi
 - Tailwind classes must be written out in full. Interpolated names like
   `` `text-${color}-600` `` are invisible to the compiler and silently produce no style.
 
+## Secrets
+
+There is no server, so there is nowhere to keep one. Never put an API key in a `VITE_*`
+variable: Vite inlines those into the public bundle at build time and anyone can read
+them. The AI Illustrator asks each visitor for their own Google AI Studio key and keeps
+it in their `localStorage`. If a shared key is ever genuinely needed, it has to go behind
+a proxy the site calls, not into the bundle.
+
 ## Known gaps
 
-- The AI Illustrator's Gemini key would ship in the public bundle if set; it needs a
-  proxy, a user-supplied key, or removal.
 - The virtual gel in the restriction finder uses linear migration; real gels are
   logarithmic.
 - The bundle is a single ~650 KB chunk with no route splitting.
