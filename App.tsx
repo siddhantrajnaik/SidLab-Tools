@@ -38,39 +38,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    // Disable Right Click
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
-
-    // Disable Keyboard Shortcuts
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Block F12 (DevTools)
-      if (e.key === 'F12') {
-        e.preventDefault();
-      }
-      
-      // Block Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element Picker)
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) {
-        e.preventDefault();
-      }
-
-      // Block Ctrl+U (View Source)
-      if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'U') {
-        e.preventDefault();
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
   return (
     <HashRouter>
       <Layout>
