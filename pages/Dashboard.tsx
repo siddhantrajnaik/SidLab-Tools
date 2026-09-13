@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Disc3, Droplets, Link2, ArrowLeftRight } from 'lucide-react';
+import { Search, Disc3, Droplets, Link2, ArrowLeftRight, Scale, Atom, Thermometer } from 'lucide-react';
 import { DilutionIcon, MolarityIcon, PercentIcon, PhIcon, ProteinIcon, ProtocolsIcon, OopsIcon, PrimerIcon, GelIcon, CellIcon, LogIcon, TimerIcon, FastaIcon, ScissorsIcon, IllustratorIcon } from '../components/ScienceIcons';
-import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt } from '../components/ToolArt';
+import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt, MolWeightArt, ProteinPropsArt, BufferArt } from '../components/ToolArt';
 import { BrandMark } from '../components/ToolArt';
 import type { ArtProps } from '../components/ToolArt';
 
@@ -19,6 +19,36 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  {
+    id: 'buffers',
+    title: 'Buffer Selector',
+    description: 'Pick a buffer, recipe & temp shift',
+    path: '/buffers',
+    icon: Thermometer,
+    art: BufferArt,
+    color: 'teal',
+    keywords: ['buffer', 'pka', 'tris', 'hepes', 'mops', 'mes', 'pipes', 'phosphate', 'good', 'henderson', 'hasselbalch', 'temperature', 'recipe', 'titrate']
+  },
+  {
+    id: 'proteinprops',
+    title: 'Protein Properties',
+    description: 'MW, pI & extinction coefficient',
+    path: '/proteinprops',
+    icon: Atom,
+    art: ProteinPropsArt,
+    color: 'orange',
+    keywords: ['protein', 'pi', 'isoelectric', 'extinction coefficient', 'a280', 'epsilon', 'molecular weight', 'gravy', 'hydropathy', 'amino acid', 'protparam']
+  },
+  {
+    id: 'molweight',
+    title: 'Molecular Weight',
+    description: 'MW from a chemical formula',
+    path: '/molweight',
+    icon: Scale,
+    art: MolWeightArt,
+    color: 'red',
+    keywords: ['molecular weight', 'molar mass', 'formula', 'mw', 'weigh', 'reagent', 'hydrate', 'atomic weight', 'element', 'composition']
+  },
   {
     id: 'centrifuge',
     title: 'Centrifuge Converter',

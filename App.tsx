@@ -22,6 +22,9 @@ import Centrifuge from './pages/Centrifuge';
 import NucleicAcid from './pages/NucleicAcid';
 import Ligation from './pages/Ligation';
 import SeqToolkit from './pages/SeqToolkit';
+import MolWeight from './pages/MolWeight';
+import ProteinProps from './pages/ProteinProps';
+import BufferSelector from './pages/BufferSelector';
 
 const App: React.FC = () => {
   // The removed ad panel stored banner images as base64 in localStorage, up to 2 MB per
@@ -63,6 +66,9 @@ const App: React.FC = () => {
           <Route path="/nucleic" element={<NucleicAcid />} />
           <Route path="/ligation" element={<Ligation />} />
           <Route path="/seqtools" element={<SeqToolkit />} />
+          <Route path="/molweight" element={<MolWeight />} />
+          <Route path="/proteinprops" element={<ProteinProps />} />
+          <Route path="/buffers" element={<BufferSelector />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

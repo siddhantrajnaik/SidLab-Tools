@@ -235,6 +235,46 @@ export const SeqArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
   </Frame>
 );
 
+/** Molecular weight — a balance pan holding a molecule, weighing it out. */
+export const MolWeightArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M48 20v50" stroke={accent} strokeWidth="4" />
+    <path d="M20 28h56" stroke={accent} strokeWidth="4" />
+    <path d="M14 70h68" stroke={accent} strokeWidth="4" />
+    <path d="M36 70a12 12 0 0 1 24 0z" fill={accent} />
+    <path d="M10 30l10 22h-20z" fill={tint} stroke={accent} strokeWidth="3.5" />
+    <path d="M76 30l10 22h-20z" fill={tint} stroke={accent} strokeWidth="3.5" />
+    <circle cx="48" cy="14" r="7" fill={accent} />
+  </Frame>
+);
+
+/** Protein properties — residues as beads on a chain, charged at both termini. */
+export const ProteinPropsArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M16 64L34 34 50 56 66 28 80 60" fill="none" stroke={accent} strokeWidth="4" />
+    <circle cx="34" cy="34" r="9" fill={tint} stroke={accent} strokeWidth="4" />
+    <circle cx="50" cy="56" r="9" fill={tint} stroke={accent} strokeWidth="4" />
+    <circle cx="66" cy="28" r="9" fill={tint} stroke={accent} strokeWidth="4" />
+    <circle cx="16" cy="64" r="11" fill={accent} />
+    <path d="M11 64h10M16 59v10" stroke="#fff" strokeWidth="3" />
+    <circle cx="80" cy="60" r="11" fill={accent} />
+    <path d="M75 60h10" stroke="#fff" strokeWidth="3" />
+  </Frame>
+);
+
+/** Buffer selector — a titration curve with its flat buffering plateau, and a thermometer. */
+export const BufferArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M12 76h62" stroke={accent} strokeWidth="4" opacity="0.35" />
+    <path d="M12 76C22 76 26 62 34 54s14-4 22-12 10-24 18-28" fill="none" stroke={tint} strokeWidth="12" strokeLinecap="round" />
+    <path d="M12 76C22 76 26 62 34 54s14-4 22-12 10-24 18-28" fill="none" stroke={accent} strokeWidth="4" strokeLinecap="round" />
+    <circle cx="45" cy="48" r="6" fill={accent} />
+    <rect x="80" y="20" width="10" height="42" rx="5" fill={tint} stroke={accent} strokeWidth="3.5" />
+    <circle cx="85" cy="68" r="8" fill={accent} />
+    <path d="M85 44v20" stroke={accent} strokeWidth="4" />
+  </Frame>
+);
+
 /** The brand mark: a flask whose body is the "S" of Sidlab. */
 export const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" className={className} fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

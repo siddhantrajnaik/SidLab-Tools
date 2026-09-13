@@ -31,6 +31,9 @@ lib/            pure, tested calculation modules — no React
   dimer.ts      self-dimer, cross-dimer, hairpin screening
   restriction.ts enzyme table (from REBASE), both-strand site finding, digestion
   sequence.ts   cleaning, complement, genetic code, translation, average MWs
+  formula.ts    NIST atomic weights, formula parsing (nesting, hydrates), mass percent
+  protein.ts    residue masses derived from formula.ts, pI, extinction coefficient, GRAVY
+  buffers.ts    NIST ionization thermodynamics; pKa at any temperature, recipes
   *.test.ts     vitest, asserting published reference values
 pages/          one component per tool; UI only, imports the maths from lib/
 components/     UI.tsx (Card/Input/Button/Select), ToolArt.tsx, ScienceIcons.tsx, Layout
