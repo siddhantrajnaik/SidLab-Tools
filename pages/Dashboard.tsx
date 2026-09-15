@@ -396,11 +396,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight mb-6 leading-tight">
-          Lab calculators,<br/>in one place
+          Bench maths,<br/>worked out
         </h1>
         <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto leading-relaxed">
-          {TOOLS.length} tools for the maths that comes up at the bench — dilutions, buffers,
-          primer Tm, gel recipes. They show their working, and run in your browser, offline.
+          {TOOLS.length} calculators for dilutions, buffers, primer Tm and gel recipes. Each
+          shows the equation it used, and the whole thing runs in your browser, offline.
         </p>
         
         {/* Search Bar Visual */}
