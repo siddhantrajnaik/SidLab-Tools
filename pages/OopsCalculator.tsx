@@ -45,7 +45,8 @@ const OopsCalculator: React.FC = () => {
   });
 
   const [result, setResult] = useState<{
-    errorPercent: number;
+    /** How far off you are, in whatever unit makes sense for this mode. */
+    metric: { label: string; value: string } | null;
     severity: Severity;
     header: string;
     message: string;
@@ -73,6 +74,8 @@ const OopsCalculator: React.FC = () => {
     const missing = 'Please fill in every field above (all values must be greater than 0).';
     let errorPct = 0;
     let severity: Severity = 'minor';
+    let phSeverity: Severity | null = null;
+    let metric: { label: string; value: string } | null = null;
     let header = '';
     let message = '';
     let correction: React.ReactNode = '';
@@ -231,9 +234,12 @@ const OopsCalculator: React.FC = () => {
         if (!target || !actual) { setError(missing); return; }
 
         const diff = actual - target; // + means too basic, - means too acidic
-        // pH is logarithmic, so a percentage of the pH number is meaningless for grading.
-        // Grade by the offset itself: 0.1 unit -> minor, 0.5 -> moderate, >1 -> critical.
-        errorPct = Math.abs(diff) * 20;
+        // pH is logarithmic, so there is no meaningful percentage to grade: being 0.5
+        // units out is a 3-fold error in [H+] whatever the pH happens to be. Grade by the
+        // offset itself, and report it in pH units rather than inventing a percentage.
+        const offset = Math.abs(diff);
+        phSeverity = offset < 0.1 ? 'minor' : offset < 0.5 ? 'moderate' : offset < 1 ? 'critical' : 'fatal';
+        metric = { label: 'Off by', value: `${offset.toFixed(2)} pH units (${Math.pow(10, offset).toFixed(1)}× in [H⁺])` };
 
         if (Math.abs(diff) < 0.05) {
              header = "pH Acceptable";
@@ -314,11 +320,17 @@ const OopsCalculator: React.FC = () => {
     // Determine Severity
     const absErr = Math.abs(errorPct);
     if (actionType === 'remake') severity = 'fatal';
+    else if (phSeverity) severity = phSeverity;
     else if (absErr < 5) severity = 'minor';
     else if (absErr < 20) severity = 'moderate';
     else severity = 'critical';
 
-    setResult({ errorPercent: errorPct, severity, header, message, correction, actionType });
+    // Every mode but pH is a straight percentage off target.
+    if (!metric && actionType !== 'ok') {
+      metric = { label: 'Off by', value: `${errorPct > 0 ? '+' : ''}${errorPct.toFixed(1)}%` };
+    }
+
+    setResult({ metric, severity, header, message, correction, actionType });
   };
 
   const getSeverityColor = (s: Severity) => {
@@ -461,6 +473,11 @@ const OopsCalculator: React.FC = () => {
                           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${getSeverityColor(result.severity)}`}>
                              {result.severity} Issue
                           </span>
+                          {result.metric && (
+                            <span className="text-xs text-slate-500">
+                              {result.metric.label} <span className="font-mono font-bold text-slate-700">{result.metric.value}</span>
+                            </span>
+                          )}
                       </div>
 
                       <div className="text-center py-6">

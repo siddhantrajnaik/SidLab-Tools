@@ -20,7 +20,13 @@ Before changing any calculation:
 
 Bugs found this way so far: primer Tm reading ~12 °C low (no Mg²⁺ term), Q5 annealing
 3 °C off, SDS-PAGE APS and TEMED at twice Bio-Rad's published amounts, `log₁₀(1)`
-rendering a blank panel, and the PCR master mix ignoring its own reaction-volume input.
+rendering a blank panel, the PCR master mix ignoring its own reaction-volume input, and
+a very dilute strong acid coming out basic because the pH calculator ignored the H⁺
+already in the water.
+
+Two tables of the same constants will drift. The pH calculator kept its own buffer pKa
+list and disagreed with the Buffer Selector by 0.08 for HEPES; both now read from
+`lib/buffers.ts`.
 
 ## Layout
 

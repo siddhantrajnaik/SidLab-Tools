@@ -6,7 +6,7 @@ import {
   ligationInsertMass,
   c1v1, massFromMolarity, molarityFromMass, volumeFromMass, percentOf,
   cellsPerMl, viability,
-  phStrongAcid, phStrongBase, phWeakAcid, phBuffer,
+  phStrongAcid, phStrongBase, phWeakAcid, phBuffer, KW_25C,
   percentTfromA, aFromPercentT,
   gelMigration, LADDER_1KB,
 } from './labmath';
@@ -169,6 +169,85 @@ describe('pH', () => {
   });
   it('a 2:1 base:acid ratio adds log10(2) ≈ 0.30', () => {
     expect(phBuffer(4.76, 2, 1)).toBeCloseTo(5.06, 2);
+  });
+
+  // Very dilute acids and bases: below about 10^-6 M the hydrogen ion from water is no
+  // longer negligible, and -log10(C) gives an answer on the wrong side of neutral. Worked
+  // examples from ChemTeam, "A trick pH question"
+  // (chemteam.info/AcidBase/Trick-pH-question.html), which solves the same charge balance.
+  it('an acid is never basic, however dilute', () => {
+    // -log10(1e-8) = 8.00, which would make hydrochloric acid a base.
+    expect(phStrongAcid(1e-8)).toBeCloseTo(6.98, 2);
+    expect(phStrongAcid(1e-8)).toBeLessThan(7);
+  });
+
+  it('matches the published 1.30e-9 M HBr example', () => {
+    expect(phStrongAcid(1.3e-9)).toBeCloseTo(6.997, 3);
+  });
+
+  it('a base is never acidic, however dilute', () => {
+    expect(phStrongBase(1e-8)).toBeCloseTo(7.02, 2);
+    expect(phStrongBase(1e-8)).toBeGreaterThan(7);
+  });
+
+  it('approaches, but never reaches, neutrality as the acid runs out', () => {
+    const ph = [1e-6, 1e-7, 1e-8, 1e-9, 1e-12].map(phStrongAcid);
+    for (let i = 1; i < ph.length; i++) expect(ph[i]).toBeGreaterThan(ph[i - 1]);
+    for (const p of ph) expect(p).toBeLessThan(7);
+    expect(phStrongAcid(1e-12)).toBeCloseTo(7, 4);
+  });
+
+  it('is still -log10(C) where the acid dominates', () => {
+    for (const c of [1, 0.1, 0.01, 1e-4]) {
+      expect(phStrongAcid(c)).toBeCloseTo(-Math.log10(c), 6);
+      expect(phStrongBase(c)).toBeCloseTo(14 + Math.log10(c), 6);
+    }
+  });
+
+  it('gives pH 7.00 for pure water, from either end', () => {
+    expect(phStrongAcid(0)).toBeCloseTo(7, 9);
+    expect(phStrongBase(0)).toBeCloseTo(7, 9);
+  });
+
+  // The textbook half-equation pH = (pKa - log10 C)/2 assumes the acid barely dissociates.
+  // That holds for acetic acid at 0.1 M and fails badly when Ka approaches C.
+  it('solves the equilibrium exactly rather than assuming little dissociation', () => {
+    // 1e-4 M of a pKa 3 acid is about 46% dissociated, so the approximation is 0.5 units out.
+    const approximation = 0.5 * (3 - Math.log10(1e-4));
+    expect(approximation).toBeCloseTo(3.5, 9);
+    expect(phWeakAcid(1e-4, 3)).toBeCloseTo(4.04, 2);
+  });
+
+  it('never reports a weak acid as more acidic than the same amount of strong acid', () => {
+    for (const c of [1, 0.01, 1e-4, 1e-6]) {
+      for (const pKa of [1, 3, 5, 9]) {
+        expect(phWeakAcid(c, pKa), `${c} M, pKa ${pKa}`).toBeGreaterThan(phStrongAcid(c) - 1e-9);
+      }
+    }
+  });
+
+  it('behaves like a strong acid when the pKa is very low', () => {
+    expect(phWeakAcid(0.01, -3)).toBeCloseTo(phStrongAcid(0.01), 4);
+  });
+
+  it('tends to neutral, not to base, for a vanishingly weak or dilute acid', () => {
+    expect(phWeakAcid(0.01, 14)).toBeCloseTo(7, 2);
+    expect(phWeakAcid(1e-12, 4.76)).toBeCloseTo(7, 2);
+    expect(phWeakAcid(1e-12, 4.76)).toBeLessThan(7);
+  });
+
+  it('gets more acidic as the acid gets stronger or more concentrated', () => {
+    expect(phWeakAcid(0.1, 4.76)).toBeLessThan(phWeakAcid(0.01, 4.76));
+    expect(phWeakAcid(0.1, 3)).toBeLessThan(phWeakAcid(0.1, 5));
+  });
+
+  it('satisfies its own charge balance', () => {
+    for (const [c, pKa] of [[0.1, 4.76], [1e-4, 3], [1e-6, 7]] as [number, number][]) {
+      const h = Math.pow(10, -phWeakAcid(c, pKa));
+      const ka = Math.pow(10, -pKa);
+      // [H+] = [OH-] + [A-]
+      expect(h).toBeCloseTo(KW_25C / h + (c * ka) / (ka + h), 12);
+    }
   });
 });
 

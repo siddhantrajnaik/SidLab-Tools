@@ -170,15 +170,68 @@ export const viability = (live: number, dead: number): number =>
 // pH
 // ---------------------------------------------------------------------------
 
-/** Strong monoprotic acid: pH = −log₁₀[H⁺]. */
-export const phStrongAcid = (molarity: number): number => -Math.log10(molarity);
+/**
+ * Ion product of water at 25 degrees C. Every function below is a 25 degrees C
+ * calculation because of it — Kw rises with temperature, so neutral water is pH 6.14 at
+ * 100 degrees C, not 7.
+ */
+export const KW_25C = 1.0e-14;
 
-/** Strong monoprotic base, via pOH. */
-export const phStrongBase = (molarity: number): number => 14 - -Math.log10(molarity);
+const phFromH = (h: number): number => -Math.log10(h);
 
-/** Weak acid approximation: pH ≈ ½(pKa − log₁₀C). */
-export const phWeakAcid = (molarity: number, pKa: number): number =>
-  0.5 * (pKa - Math.log10(molarity));
+/**
+ * Strong monoprotic acid.
+ *
+ * Not simply -log10(C): below about 10^-6 M the hydrogen ion already present in water is
+ * no longer negligible, and ignoring it puts the answer on the wrong side of neutral —
+ * 10^-8 M HCl comes out as pH 8, a base. Charge balance gives [H+] = C + Kw/[H+], so
+ *
+ *   [H+] = (C + sqrt(C^2 + 4*Kw)) / 2
+ *
+ * which reduces to -log10(C) whenever C dominates. Worked example and the same quadratic:
+ * ChemTeam, "A trick pH question" (chemteam.info/AcidBase/Trick-pH-question.html).
+ */
+export const phStrongAcid = (molarity: number): number => {
+  const c = Math.max(0, molarity);
+  return phFromH((c + Math.sqrt(c * c + 4 * KW_25C)) / 2);
+};
+
+/** Strong monoprotic base, the same balance solved for hydroxide. */
+export const phStrongBase = (molarity: number): number => {
+  const c = Math.max(0, molarity);
+  const oh = (c + Math.sqrt(c * c + 4 * KW_25C)) / 2;
+  return phFromH(KW_25C / oh);
+};
+
+/**
+ * Weak monoprotic acid, solved rather than approximated.
+ *
+ * The familiar pH = (pKa - log10 C)/2 assumes the acid barely dissociates, which fails
+ * as soon as Ka approaches C: 10^-4 M of a pKa 3 acid is nearly half dissociated and the
+ * approximation is half a pH unit out. This solves the charge balance
+ *
+ *   [H+] = [OH-] + [A-] = Kw/[H+] + C*Ka/(Ka + [H+])
+ *
+ * by bisection, so it stays correct for a strong-ish acid, a very dilute one, and a very
+ * weak one alike — the last two tending to neutral from the acid side rather than
+ * crossing it.
+ */
+export const phWeakAcid = (molarity: number, pKa: number): number => {
+  const c = Math.max(0, molarity);
+  const ka = Math.pow(10, -pKa);
+  // Positive when the pH guess is too acidic, negative when too basic.
+  const excess = (ph: number): number => {
+    const h = Math.pow(10, -ph);
+    return h - KW_25C / h - (c * ka) / (ka + h);
+  };
+  let low = -2;   // 100 M of a fully dissociated acid
+  let high = 16;  // well past neutral; a pure acid can never reach it
+  for (let i = 0; i < 200; i++) {
+    const mid = (low + high) / 2;
+    if (excess(mid) > 0) low = mid; else high = mid;
+  }
+  return (low + high) / 2;
+};
 
 /** Henderson-Hasselbalch: pH = pKa + log₁₀([A⁻]/[HA]). */
 export const phBuffer = (pKa: number, base: number, acid: number): number =>

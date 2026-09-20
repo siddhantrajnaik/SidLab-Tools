@@ -3,15 +3,15 @@ import { Activity, FlaskConical, Calculator } from 'lucide-react';
 import { PageHeader, Card, Input, Button, Select } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
 import { phStrongAcid, phStrongBase, phWeakAcid, phBuffer } from '../lib/labmath';
+import { bufferById } from '../lib/buffers';
 
-const COMMON_BUFFERS = [
-  { name: 'Tris (25°C)', pKa: 8.06 },
-  { name: 'HEPES (25°C)', pKa: 7.48 },
-  { name: 'Phosphate (pKa2)', pKa: 7.21 },
-  { name: 'MOPS (25°C)', pKa: 7.20 },
-  { name: 'Acetate', pKa: 4.76 },
-  { name: 'Citrate (pKa3)', pKa: 6.40 },
-];
+// Presets come from the same NIST-sourced table the Buffer Selector uses, so the two
+// tools cannot quote different pKa values for the same buffer — they did, by 0.08 for
+// HEPES, when this page kept its own list.
+const PRESET_IDS = ['acetate', 'citrate3', 'mes', 'phosphate2', 'mops', 'hepes', 'tris', 'tricine', 'ches'];
+const COMMON_BUFFERS = PRESET_IDS
+  .map(id => bufferById(id))
+  .filter((b): b is NonNullable<typeof b> => !!b);
 
 const PhCalculator: React.FC = () => {
   // --- Strong Acid/Base State ---
@@ -67,8 +67,6 @@ const PhCalculator: React.FC = () => {
     }
     setErrors(e => ({ ...e, weak: undefined }));
 
-    // Approximation: [H+] = sqrt(Ka * C)
-    // pH = 0.5 * (pKa - log[C])
     const pH = phWeakAcid(c, pka);
 
     setWeakResult({
@@ -121,8 +119,9 @@ const PhCalculator: React.FC = () => {
         <Card title="Strong Acid / Base" className="flex flex-col h-full border-t-4 border-t-pink-500">
            <div className="space-y-6 flex-1">
              <div className="bg-pink-50 p-4 rounded-xl text-sm text-pink-800 leading-relaxed">
-               Assumes complete dissociation. <br/>
-               <span className="font-mono text-xs">pH = -log[H⁺]</span>
+               Complete dissociation, plus the H⁺ already in the water — so a very dilute
+               acid tends to pH 7 instead of crossing it.<br/>
+               <span className="font-mono text-xs">[H⁺] = (C + √(C² + 4K<sub>w</sub>)) / 2</span>
              </div>
 
              <div className="grid grid-cols-2 gap-4">
@@ -168,8 +167,9 @@ const PhCalculator: React.FC = () => {
         <Card title="Weak Acid (via pKa)" className="flex flex-col h-full border-t-4 border-t-emerald-500">
            <div className="space-y-6 flex-1">
              <div className="bg-emerald-50 p-4 rounded-xl text-sm text-emerald-800 leading-relaxed">
-               Uses standard approximation.<br/>
-               <span className="font-mono text-xs">pH ≈ ½(pKa - log[C])</span>
+               Solves the equilibrium exactly, so it holds even when the acid is strong or
+               dilute enough to dissociate substantially.<br/>
+               <span className="font-mono text-xs">[H⁺] = K<sub>w</sub>/[H⁺] + C·K<sub>a</sub>/(K<sub>a</sub> + [H⁺])</span>
              </div>
 
              <div className="grid grid-cols-2 gap-4">
@@ -225,11 +225,11 @@ const PhCalculator: React.FC = () => {
              <div className="flex flex-wrap gap-2 mb-2">
                 {COMMON_BUFFERS.map(b => (
                     <button 
-                        key={b.name}
-                        onClick={() => loadPreset(b.pKa)}
+                        key={b.id}
+                        onClick={() => loadPreset(b.pKa25)}
                         className="px-2 py-1 text-xs font-semibold bg-white border border-slate-200 text-slate-600 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors"
                     >
-                        {b.name}
+                        {b.name} <span className="text-slate-400 font-mono">{b.pKa25.toFixed(2)}</span>
                     </button>
                 ))}
              </div>
