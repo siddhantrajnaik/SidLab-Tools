@@ -1,18 +1,24 @@
 /**
  * Chemical formula parsing and molecular weight.
  *
- * Atomic weights come from NIST's "Atomic Weights and Isotopic Compositions"
- * (physics.nist.gov), extracted programmatically rather than transcribed. NIST publishes
- * a single value for most elements and an interval for those whose isotopic composition
- * varies in nature (hydrogen, carbon, sulfur and others); the midpoint of that interval
- * is used, which reproduces IUPAC's conventional atomic weights to within 0.01 — sulfur
- * differs most, at 32.0675 here against IUPAC's rounded 32.06.
+ * Atomic weights were extracted programmatically rather than transcribed, from NIST's
+ * "Atomic Weights and Isotopic Compositions" (physics.nist.gov) for elements that have a
+ * single value, and from CIAAW's Abridged Standard Atomic Weights 2024
+ * (ciaaw.org/abridged-atomic-weights.htm) for the fifteen whose isotopic composition
+ * varies enough in nature that the standard weight is published as an interval: H, Li, B,
+ * C, N, O, Ne, Mg, Si, S, Cl, Ar, Br, Tl and Pb.
+ *
+ * Those fifteen use CIAAW's *conventional* value — the one to use when the material's
+ * origin is unknown, which is the case for anything out of a reagent bottle. Averaging
+ * the interval instead is close for most of them and wrong for lithium: [6.938, 6.997]
+ * has a midpoint of 6.9675, but commercial lithium is depleted in 6Li and the accepted
+ * value is 6.94. The midpoint put LiCl 0.03 g/mol high.
  */
 
 export const ATOMIC_WEIGHTS: Record<string, number> = {
-  H: 1.007975, He: 4.002602, Li: 6.9675, Be: 9.012183, B: 10.8135, C: 12.0106, N: 14.006855,
-  O: 15.9994, F: 18.998403, Ne: 20.1797, Na: 22.989769, Mg: 24.3055, Al: 26.981538, Si: 28.085,
-  P: 30.973762, S: 32.0675, Cl: 35.4515, Ar: 39.948, K: 39.0983, Ca: 40.078, Sc: 44.955908,
+  H: 1.008, He: 4.002602, Li: 6.94, Be: 9.012183, B: 10.81, C: 12.011, N: 14.007,
+  O: 15.999, F: 18.998403, Ne: 20.18, Na: 22.989769, Mg: 24.305, Al: 26.981538, Si: 28.085,
+  P: 30.973762, S: 32.06, Cl: 35.45, Ar: 39.95, K: 39.0983, Ca: 40.078, Sc: 44.955908,
   Ti: 47.867, V: 50.9415, Cr: 51.9961, Mn: 54.938044, Fe: 55.845, Co: 58.933194, Ni: 58.6934,
   Cu: 63.546, Zn: 65.38, Ga: 69.723, Ge: 72.63, As: 74.921595, Se: 78.971, Br: 79.904,
   Kr: 83.798, Rb: 85.4678, Sr: 87.62, Y: 88.90584, Zr: 91.224, Nb: 92.90637, Mo: 95.95, Tc: 98,
@@ -21,7 +27,7 @@ export const ATOMIC_WEIGHTS: Record<string, number> = {
   Ce: 140.116, Pr: 140.90766, Nd: 144.242, Pm: 145, Sm: 150.36, Eu: 151.964, Gd: 157.25,
   Tb: 158.92535, Dy: 162.5, Ho: 164.93033, Er: 167.259, Tm: 168.93422, Yb: 173.054,
   Lu: 174.9668, Hf: 178.49, Ta: 180.94788, W: 183.84, Re: 186.207, Os: 190.23, Ir: 192.217,
-  Pt: 195.084, Au: 196.966569, Hg: 200.592, Tl: 204.3835, Pb: 207.2, Bi: 208.9804, Po: 209,
+  Pt: 195.084, Au: 196.966569, Hg: 200.592, Tl: 204.38, Pb: 207.2, Bi: 208.9804, Po: 209,
   At: 210, Rn: 222, Fr: 223, Ra: 226, Ac: 227, Th: 232.0377, Pa: 231.03588, U: 238.02891,
   Np: 237, Pu: 244,
 };

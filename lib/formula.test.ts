@@ -1,20 +1,41 @@
 import { describe, it, expect } from 'vitest';
 import { ATOMIC_WEIGHTS, parseFormula, formatFormula, massPercent } from './formula';
 
-describe('atomic weights (NIST)', () => {
+describe('atomic weights (CIAAW)', () => {
   it('covers the elements a lab formula actually uses', () => {
     for (const el of ['H', 'C', 'N', 'O', 'Na', 'Mg', 'P', 'S', 'Cl', 'K', 'Ca', 'Fe', 'Zn', 'I']) {
       expect(ATOMIC_WEIGHTS[el], el).toBeGreaterThan(0);
     }
   });
 
-  // Against IUPAC's conventional atomic weights. NIST gives an interval for elements with
-  // variable isotopic composition and the midpoint is used, so agreement is to 0.01.
+  // The fifteen elements whose isotopic composition varies enough in nature that CIAAW
+  // publishes an interval rather than a single value. For these it also publishes a
+  // conventional weight, to be used when the material's origin is unknown — which is the
+  // situation for anything out of a reagent bottle. Values from CIAAW's Abridged Standard
+  // Atomic Weights 2024 (ciaaw.org/abridged-atomic-weights.htm).
   it.each([
-    ['H', 1.008], ['C', 12.011], ['N', 14.007], ['O', 15.999], ['Na', 22.990],
-    ['P', 30.974], ['S', 32.06], ['Cl', 35.45], ['K', 39.098], ['Ca', 40.078],
-  ])('%s matches the IUPAC conventional weight', (el, expected) => {
-    expect(Math.abs(ATOMIC_WEIGHTS[el] - expected)).toBeLessThan(0.01);
+    ['H', 1.008], ['Li', 6.94], ['B', 10.81], ['C', 12.011], ['N', 14.007],
+    ['O', 15.999], ['Ne', 20.18], ['Mg', 24.305], ['Si', 28.085], ['S', 32.06],
+    ['Cl', 35.45], ['Ar', 39.95], ['Br', 79.904], ['Tl', 204.38], ['Pb', 207.2],
+  ])('%s uses the conventional weight exactly', (el, expected) => {
+    expect(ATOMIC_WEIGHTS[el]).toBe(expected);
+  });
+
+  it('does not take the midpoint of the interval, which lithium would break', () => {
+    // Li spans [6.938, 6.997]; the midpoint is 6.9675, but the accepted value is 6.94,
+    // because commercial lithium is depleted in 6Li. Averaging the interval put this
+    // 0.4% high — LiCl came out at 42.42 against the 42.39 the conventional weights give,
+    // and that error carries into every lithium reagent (LiCl, lithium acetate, LiDS).
+    expect(ATOMIC_WEIGHTS.Li).not.toBeCloseTo(6.9675, 3);
+    expect(parseFormula('LiCl').mass).toBeCloseTo(42.39, 2);
+    expect(parseFormula('C2H3LiO2').mass).toBeCloseTo(65.984, 3); // lithium acetate
+  });
+
+  it('keeps full published precision for elements with a single value', () => {
+    // Stored to six decimal places, rather than rounded to CIAAW's abridged five figures
+    // (which would make gold 196.97 and sodium 22.990).
+    expect(ATOMIC_WEIGHTS.Au).toBeCloseTo(196.966569, 6);
+    expect(ATOMIC_WEIGHTS.Na).toBeCloseTo(22.98976928, 6);
   });
 
   it('is case sensitive, as chemistry requires', () => {

@@ -20,13 +20,27 @@ Before changing any calculation:
 
 Bugs found this way so far: primer Tm reading ~12 °C low (no Mg²⁺ term), Q5 annealing
 3 °C off, SDS-PAGE APS and TEMED at twice Bio-Rad's published amounts, `log₁₀(1)`
-rendering a blank panel, the PCR master mix ignoring its own reaction-volume input, and
+rendering a blank panel, the PCR master mix ignoring its own reaction-volume input,
 a very dilute strong acid coming out basic because the pH calculator ignored the H⁺
-already in the water.
+already in the water, and lithium's atomic weight 0.4% high.
 
 Two tables of the same constants will drift. The pH calculator kept its own buffer pKa
 list and disagreed with the Buffer Selector by 0.08 for HEPES; both now read from
 `lib/buffers.ts`.
+
+**Where a table is generated, check the generating rule, not just a few rows.** The
+element table took the midpoint of the interval NIST publishes for elements of variable
+isotopic composition. That reproduces the accepted value for most of them and fails for
+lithium, whose commercial material is isotopically depleted — 6.9675 against an accepted
+6.94. The eighteen spot-checks in the test did not include lithium. Interval elements now
+use CIAAW's conventional values, and the test asserts all fifteen exactly.
+
+Independent implementations are the cheapest way to check a whole table at once. Biopython
+implements the same published methods for Tm, restriction digestion and protein
+properties, and `molmass` for formula weights; comparing against them across a few hundred
+generated cases found the lithium error and cleared everything else. Mutation-test the
+comparison first — break a constant on purpose and confirm the check fails — or a clean
+result means nothing.
 
 ## Layout
 
@@ -37,7 +51,7 @@ lib/            pure, tested calculation modules — no React
   dimer.ts      self-dimer, cross-dimer, hairpin screening
   restriction.ts enzyme table (from REBASE), both-strand site finding, digestion
   sequence.ts   cleaning, complement, genetic code, translation, average MWs
-  formula.ts    NIST atomic weights, formula parsing (nesting, hydrates), mass percent
+  formula.ts    CIAAW/NIST atomic weights, formula parsing (nesting, hydrates), mass percent
   protein.ts    residue masses derived from formula.ts, pI, extinction coefficient, GRAVY
   buffers.ts    NIST ionization thermodynamics; pKa at any temperature, recipes
   *.test.ts     vitest, asserting published reference values

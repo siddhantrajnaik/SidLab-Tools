@@ -67,6 +67,27 @@ describe('pKa against temperature', () => {
     expect(pKaAt(get(id), tempC)).toBeCloseTo(measured, 2);
   });
 
+  // The same check, run across the rest of the table. Each pair is the coldest and
+  // hottest pK the review reports for that buffer at zero ionic strength, read from the
+  // per-buffer literature tables — data that played no part in choosing the three
+  // constants stored for each buffer, so agreement tests both the transcription and the
+  // model. All 29 entries were checked this way; these are the ones whose series the
+  // review tabulates at I = 0 across a wide temperature range.
+  it.each([
+    ['mes', 10, 6.405], ['mes', 55, 6.034],
+    ['bistris', 5, 6.8344], ['bistris', 50, 6.0959],
+    ['aces', 10, 7.1343], ['aces', 55, 6.3749],
+    ['imidazole', 5, 7.455], ['imidazole', 50, 6.496],
+    ['pipes', 10, 7.238], ['pipes', 55, 6.918],
+    ['mops', 10, 7.376], ['mops', 55, 6.842],
+    ['bes', 10, 7.41], ['bes', 55, 6.8],
+    ['tes', 10, 7.848], ['tes', 55, 7.029],
+    ['caps', 10, 10.94], ['caps', 55, 9.705],
+  ])('predicts the measured pK of %s at %i degrees C', (id, tempC, measured) => {
+    expect(pKaAt(get(id), tempC)).toBeCloseTo(measured, 1);
+    expect(Math.abs(pKaAt(get(id), tempC) - measured)).toBeLessThan(0.05);
+  });
+
   it('rises as it gets colder for every endothermic ionization', () => {
     for (const b of BUFFERS) {
       if (b.dH <= 0) continue;
