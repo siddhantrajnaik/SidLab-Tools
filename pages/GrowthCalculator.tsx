@@ -67,7 +67,7 @@ const GrowthCalculator: React.FC = () => {
                     <p className="text-2xl font-bold text-emerald-700">{(td * 60).toFixed(1)}<span className="text-sm font-medium"> min</span></p>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-slate-100">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">μ</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rate <span className="normal-case">μ</span></p>
                     <p className="text-2xl font-bold text-slate-800">{mu.toFixed(3)}<span className="text-sm font-medium"> h⁻¹</span></p>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-slate-100">

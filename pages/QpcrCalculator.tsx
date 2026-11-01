@@ -192,7 +192,7 @@ const QpcrCalculator: React.FC = () => {
                     </p>
                   </div>
                   <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">2<sup>−ΔΔCq</sup> (assumes 100%)</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1"><span className="normal-case">2<sup>−ΔΔCq</sup></span> (assumes 100%)</p>
                     <p className="text-3xl font-bold text-slate-700">{fmt(dd.foldChange, 2)}×</p>
                     <p className="text-xs text-slate-500 mt-1">ΔΔCq = {fmt(dd.ddCq, 2)}</p>
                   </div>

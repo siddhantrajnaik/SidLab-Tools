@@ -12,7 +12,7 @@ import {
 type Amount = 'nmol' | 'od' | 'ug';
 const num = (v: string): number | '' => (v === '' ? '' : parseFloat(v));
 
-const Stat: React.FC<{ label: string; value: string; unit: string; strong?: boolean }> = ({ label, value, unit, strong }) => (
+const Stat: React.FC<{ label: React.ReactNode; value: string; unit: string; strong?: boolean }> = ({ label, value, unit, strong }) => (
   <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
     <p className={`text-2xl font-bold ${strong ? 'text-indigo-600' : 'text-slate-900'}`}>
@@ -94,7 +94,7 @@ const OligoResuspension: React.FC = () => {
                   <Stat label="Mass" value={microgramsFromNmol(nmol, mw).toFixed(1)} unit="µg" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Stat label="ε₂₆₀" value={eps.toLocaleString()} unit="M⁻¹cm⁻¹" strong />
+                  <Stat label={<>Extinction <span className="normal-case">ε₂₆₀</span></>} value={eps.toLocaleString()} unit="M⁻¹cm⁻¹" strong />
                   <Stat label="Molecular weight" value={mw.toFixed(1)} unit="g/mol" />
                 </div>
                 <div className="flex items-start text-xs text-slate-500 leading-relaxed">

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Disc3, Droplets, Link2, ArrowLeftRight, Scale, Atom, Thermometer, LineChart, Grid3x3, TestTube, Pill, TrendingUp, Rows } from 'lucide-react';
+import { Search, Disc3, Droplets, Link2, ArrowLeftRight, Scale, Atom, Thermometer, LineChart, Grid3x3, TestTube, Pill, TrendingUp, Rows, Copy, Radiation, Microscope, Sigma } from 'lucide-react';
 import { DilutionIcon, MolarityIcon, PercentIcon, PhIcon, ProteinIcon, ProtocolsIcon, OopsIcon, PrimerIcon, GelIcon, CellIcon, LogIcon, TimerIcon, FastaIcon, ScissorsIcon, IllustratorIcon } from '../components/ScienceIcons';
-import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt, MolWeightArt, ProteinPropsArt, BufferArt, QpcrArt, SeedingArt, OligoArt, AntibioticArt, GrowthArt, AgaroseArt } from '../components/ToolArt';
+import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt, MolWeightArt, ProteinPropsArt, BufferArt, QpcrArt, SeedingArt, OligoArt, AntibioticArt, GrowthArt, AgaroseArt, CopyNumberArt, DecayArt, TransformationArt, KineticsArt } from '../components/ToolArt';
 import { BrandMark } from '../components/ToolArt';
 import type { ArtProps } from '../components/ToolArt';
 
@@ -19,6 +19,26 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  {
+    id: 'copynumber', title: 'Copy Number', description: 'Copies ↔ ng & qPCR standards',
+    path: '/copynumber', icon: Copy, art: CopyNumberArt, color: 'violet',
+    keywords: ['copy number', 'copies', 'qpcr standard', 'standard curve', 'plasmid', 'avogadro', 'ng to copies', 'serial dilution', 'gene copies']
+  },
+  {
+    id: 'decay', title: 'Radioactive Decay', description: 'Activity on any date',
+    path: '/decay', icon: Radiation, art: DecayArt, color: 'lime',
+    keywords: ['radioactive', 'decay', 'half-life', 'isotope', '32p', '35s', '125i', 'tritium', 'activity', 'mci', 'mbq', 'radiolabel']
+  },
+  {
+    id: 'transformation', title: 'Transformation Efficiency', description: 'Colonies to cfu/µg',
+    path: '/transformation', icon: Microscope, art: TransformationArt, color: 'cyan',
+    keywords: ['transformation', 'efficiency', 'competent cells', 'cfu', 'colonies', 'puc19', 'electroporation', 'heat shock']
+  },
+  {
+    id: 'kinetics', title: 'Enzyme Kinetics', description: 'Km & Vmax by nonlinear fit',
+    path: '/kinetics', icon: Sigma, art: KineticsArt, color: 'purple',
+    keywords: ['enzyme', 'kinetics', 'michaelis menten', 'km', 'vmax', 'lineweaver burk', 'substrate', 'rate', 'kcat']
+  },
   {
     id: 'qpcr', title: 'qPCR Analysis', description: 'Efficiency, Pfaffl & ΔΔCq',
     path: '/qpcr', icon: LineChart, art: QpcrArt, color: 'violet',

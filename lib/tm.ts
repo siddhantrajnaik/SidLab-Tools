@@ -34,7 +34,7 @@ export const NN_INIT_GC = { dH: 0.1, dS: -2.8 };
 export const NN_INIT_AT = { dH: 2.3, dS: 4.1 };
 
 /** Per-base molecular weights for a 5'-OH oligo, in Da. */
-const BASE_MW = { A: 313.2, C: 289.2, G: 329.2, T: 304.2 } as const;
+export const BASE_MW = { A: 313.2, C: 289.2, G: 329.2, T: 304.2 } as const;
 const OLIGO_MW_OFFSET = -61.96;
 
 /**

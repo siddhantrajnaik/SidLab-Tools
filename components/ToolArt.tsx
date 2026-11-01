@@ -343,6 +343,50 @@ export const AgaroseArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
   </Frame>
 );
 
+/** Copy number — a plasmid ring multiplied. */
+export const CopyNumberArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <circle cx="36" cy="40" r="20" fill={tint} stroke={accent} strokeWidth="4" />
+    <circle cx="62" cy="58" r="20" fill="none" stroke={accent} strokeWidth="4" opacity="0.5" />
+    <rect x="30" y="17" width="12" height="7" rx="3" fill={accent} />
+    <path d="M70 18v16M62 26h16" stroke={accent} strokeWidth="4" />
+  </Frame>
+);
+
+/** Radioactive decay — an exponential decay curve under the trefoil. */
+export const DecayArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M12 82h72M12 82V14" stroke={accent} strokeWidth="4" opacity="0.35" />
+    <path d="M14 22c10 30 22 46 68 54" fill="none" stroke={tint} strokeWidth="11" />
+    <path d="M14 22c10 30 22 46 68 54" fill="none" stroke={accent} strokeWidth="4" />
+    <circle cx="66" cy="30" r="4" fill={accent} />
+    {[0, 120, 240].map(a => (
+      <path key={a} d="M66 30L66 14A16 16 0 0 1 79.9 22Z" fill={accent} transform={`rotate(${a} 66 30)`} />
+    ))}
+  </Frame>
+);
+
+/** Transformation — colonies on an agar plate. */
+export const TransformationArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <circle cx="48" cy="50" r="34" fill={tint} stroke={accent} strokeWidth="4" />
+    {[[36, 38, 5], [56, 34, 4], [62, 54, 6], [40, 60, 4], [50, 48, 3.5], [30, 50, 3]].map(([x, y, r], i) => (
+      <circle key={i} cx={x} cy={y} r={r} fill={accent} />
+    ))}
+  </Frame>
+);
+
+/** Enzyme kinetics — a hyperbolic saturation curve with its Vmax asymptote. */
+export const KineticsArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M12 82h72M12 82V14" stroke={accent} strokeWidth="4" opacity="0.35" />
+    <path d="M12 26h72" stroke={accent} strokeWidth="3" strokeDasharray="5 5" />
+    <path d="M14 80C20 46 34 34 82 30" fill="none" stroke={tint} strokeWidth="11" />
+    <path d="M14 80C20 46 34 34 82 30" fill="none" stroke={accent} strokeWidth="4" />
+    <path d="M28 82V52" stroke={accent} strokeWidth="3" strokeDasharray="4 4" />
+  </Frame>
+);
+
 /** The brand mark: a flask whose body is the "S" of Sidlab. */
 export const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" className={className} fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -69,6 +69,10 @@ lib/            pure, tested calculation modules — no React
   media.ts      antibiotic stocks (Addgene, Gold Biotechnology), selection agents
   growth.ts     OD600 growth rate, doubling time, time-to-OD, back-dilution
   agarose.ts    separation ranges per source (Sambrook 2012, Ausubel 1995), dye sizes
+  copynumber.ts copies <-> mass (exact N_A), dilution series for qPCR standards
+  decay.ts      DDEP half-lives, decay and decay-correction, dates
+  transformation.ts  cfu/µg, checked against NEB's and Thermo's worked examples
+  kinetics.ts   Michaelis-Menten nonlinear fit with SEs (matches SciPy), Lineweaver-Burk
   *.test.ts     vitest, asserting published reference values
 pages/          one component per tool; UI only, imports the maths from lib/
 components/     UI.tsx (Card/Input/Button/Select), ToolArt.tsx, ScienceIcons.tsx, Layout
@@ -116,6 +120,9 @@ precaches those itself; globbing them too produced 16 precache entries for 10 fi
   of the output, so a user can check it.
 - Tool card artwork lives in `ToolArt.tsx`, drawn to read at 64 px with colours passed in
   as props. Small corner icons come from `ScienceIcons.tsx` or lucide.
+- Never let CSS `uppercase` touch a unit or a Greek symbol. µ uppercases to Greek capital
+  Mu, which renders as "M": a "Copies/µL" header displayed as "COPIES/ML", a thousandfold
+  misreading. μ, ε and Cq suffer the same way. Wrap them in `<span className="normal-case">`.
 - Tailwind classes must be written out in full. Interpolated names like
   `` `text-${color}-600` `` are invisible to the compiler and silently produce no style.
 

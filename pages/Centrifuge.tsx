@@ -2,10 +2,72 @@ import React, { useState } from 'react';
 import { RefreshCw, Printer, Info, AlertTriangle, Repeat } from 'lucide-react';
 import { PageHeader, Card, Input, Button } from '../components/UI';
 import { safeNum, formatScientific } from '../utils';
-import { rcfFromRpm, rpmFromRcf } from '../lib/labmath';
+import { rcfFromRpm, rpmFromRcf, kFactor, kAtSpeed, transferRunTime, pelletingHours } from '../lib/labmath';
 
 type Solve = 'rcf' | 'rpm';
 type RadiusUnit = 'cm' | 'mm';
+
+
+/** Carry a pelleting run from one rotor to another, by k-factor. */
+const KFactorCard: React.FC = () => {
+  const n = (v: string): number | '' => (v === '' ? '' : parseFloat(v));
+  const [t1, setT1] = useState<number | ''>(70);
+  const [k1, setK1] = useState<number | ''>(44);
+  const [max1, setMax1] = useState<number | ''>(70000);
+  const [run1, setRun1] = useState<number | ''>(36914);
+  const [rmin, setRmin] = useState<number | ''>('');
+  const [rmax, setRmax] = useState<number | ''>('');
+  const [run2, setRun2] = useState<number | ''>('');
+  const [sval, setSval] = useState<number | ''>('');
+
+  const kProtocol = kAtSpeed(Number(k1) || 0, Number(max1) || 0, Number(run1) || 0);
+  const kNew = kFactor(Number(rmin) || 0, Number(rmax) || 0, Number(run2) || 0);
+  const t2 = transferRunTime(Number(t1) || 0, kProtocol, kNew);
+
+  return (
+    <Card title="Move a pelleting run to another rotor (k-factor)">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-7 space-y-5">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Protocol rotor</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Input label="Run time" value={t1} onChange={e => setT1(n(e.target.value))} unit="min" />
+              <Input label="Rated k" value={k1} onChange={e => setK1(n(e.target.value))} />
+              <Input label="at max" value={max1} onChange={e => setMax1(n(e.target.value))} unit="rpm" />
+              <Input label="Run at" value={run1} onChange={e => setRun1(n(e.target.value))} unit="rpm" />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Your rotor</p>
+            <div className="grid grid-cols-3 gap-3">
+              <Input label="r min" value={rmin} onChange={e => setRmin(n(e.target.value))} unit="cm" />
+              <Input label="r max" value={rmax} onChange={e => setRmax(n(e.target.value))} unit="cm" />
+              <Input label="Run at" value={run2} onChange={e => setRun2(n(e.target.value))} unit="rpm" />
+            </div>
+          </div>
+          <Input label="Sedimentation coefficient (optional)" value={sval} onChange={e => setSval(n(e.target.value))} unit="S" />
+        </div>
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100">
+            <p className="text-[11px] font-bold text-amber-500 uppercase tracking-wider mb-1">Equivalent run</p>
+            <p className="text-3xl font-bold text-amber-700">{t2 > 0 ? `${t2.toFixed(1)} min` : '—'}</p>
+            <p className="text-xs font-mono text-amber-800 mt-2">t₂ = {Number(t1) || 0} × {kNew.toFixed(1)} / {kProtocol.toFixed(1)}</p>
+          </div>
+          <div className="text-xs font-mono text-slate-500 bg-white p-4 rounded-xl border border-slate-100 space-y-1">
+            <p>protocol k at {(Number(run1) || 0).toLocaleString()} rpm = {Number(k1) || 0} × ({(Number(max1) || 0).toLocaleString()}/{(Number(run1) || 0).toLocaleString()})² = {kProtocol.toFixed(1)}</p>
+            <p>your k = 2.533×10¹¹ · ln(r max / r min) / rpm² = {kNew.toFixed(1)}</p>
+            {Number(sval) > 0 && <p>pellets a {sval} S particle in ≈ {(pelletingHours(kNew, Number(sval)) * 60).toFixed(0)} min (t = k / S)</p>}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            A rotor's published k is for its maximum speed; at a lower speed it rises with the square of the ratio. Acceleration
+            and braking are not included. The protocol defaults are Thermo Fisher's worked example: 70 min in a Beckman Type 70 Ti
+            (k 44 at 70,000 rpm) run at 36,914 rpm for 100,000 × g. Read your own rotor's r min and r max from its manual.
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 const Centrifuge: React.FC = () => {
   const [solveFor, setSolveFor] = useState<Solve>('rcf');
@@ -167,6 +229,8 @@ const Centrifuge: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      <KFactorCard />
     </div>
   );
 };

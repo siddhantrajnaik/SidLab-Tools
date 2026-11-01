@@ -31,6 +31,10 @@ import OligoResuspension from './pages/OligoResuspension';
 import MediaStocks from './pages/MediaStocks';
 import GrowthCalculator from './pages/GrowthCalculator';
 import AgaroseGel from './pages/AgaroseGel';
+import CopyNumber from './pages/CopyNumber';
+import DecayCalculator from './pages/DecayCalculator';
+import TransformationEfficiency from './pages/TransformationEfficiency';
+import EnzymeKinetics from './pages/EnzymeKinetics';
 
 const App: React.FC = () => {
   // The removed ad panel stored banner images as base64 in localStorage, up to 2 MB per
@@ -81,6 +85,10 @@ const App: React.FC = () => {
           <Route path="/antibiotics" element={<MediaStocks />} />
           <Route path="/growth" element={<GrowthCalculator />} />
           <Route path="/agarose" element={<AgaroseGel />} />
+          <Route path="/copynumber" element={<CopyNumber />} />
+          <Route path="/decay" element={<DecayCalculator />} />
+          <Route path="/transformation" element={<TransformationEfficiency />} />
+          <Route path="/kinetics" element={<EnzymeKinetics />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

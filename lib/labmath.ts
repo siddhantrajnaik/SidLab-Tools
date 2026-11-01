@@ -22,6 +22,30 @@ export const rcfFromRpm = (rpm: number, radiusCm: number): number =>
 export const rpmFromRcf = (rcf: number, radiusCm: number): number =>
   radiusCm > 0 ? Math.sqrt(rcf / (RCF_CONSTANT * radiusCm)) : 0;
 
+/**
+ * Rotor k-factor (clearing factor): k = ln(rmax / rmin) / ω² × 10¹³ / 3600, with ω in rad/s.
+ * The 10¹³ converts seconds to svedbergs and the 3600 seconds to hours, so pelleting time
+ * in hours is t = k / s (s in S). Substituting ω = 2π·rpm/60 gives the familiar
+ * k = 2.533 × 10¹¹ · ln(rmax/rmin) / rpm² — the constant in Thermo Fisher's application note
+ * "Effortlessly transfer centrifugation protocols" (Equation 1). The radii only enter as a
+ * ratio, so any length unit will do.
+ */
+export const K_FACTOR_CONSTANT = 1e13 / 3600 / Math.pow((2 * Math.PI) / 60, 2);
+
+export const kFactor = (rminCm: number, rmaxCm: number, rpm: number): number =>
+  rminCm > 0 && rmaxCm > rminCm && rpm > 0 ? (K_FACTOR_CONSTANT * Math.log(rmaxCm / rminCm)) / (rpm * rpm) : 0;
+
+/** A rotor's k-factor is quoted at its maximum speed; below it, k rises with the square of the ratio. */
+export const kAtSpeed = (kAtMax: number, maxRpm: number, rpm: number): number =>
+  rpm > 0 && maxRpm > 0 ? kAtMax * Math.pow(maxRpm / rpm, 2) : 0;
+
+/** Equivalent run time in a second rotor: t2 = t1 × k2 / k1. Ignores acceleration and braking. */
+export const transferRunTime = (t1: number, k1: number, k2: number): number =>
+  k1 > 0 ? (t1 * k2) / k1 : 0;
+
+/** Hours to pellet a particle of sedimentation coefficient s (svedbergs): t = k / s. */
+export const pelletingHours = (k: number, svedbergs: number): number => (svedbergs > 0 ? k / svedbergs : 0);
+
 // ---------------------------------------------------------------------------
 // SDS-PAGE gels
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   RCF_CONSTANT, rcfFromRpm, rpmFromRcf,
+  K_FACTOR_CONSTANT, kFactor, kAtSpeed, transferRunTime, pelletingHours,
   gelRecipe, gelPercentFromVolume,
   beerLambert, A260_FACTORS, nucleicConcentration,
   ligationInsertMass,
@@ -290,5 +291,51 @@ describe('gel migration', () => {
   it('ships a descending 1 kb ladder', () => {
     expect(LADDER_1KB[0]).toBe(10000);
     expect([...LADDER_1KB].sort((a, b) => b - a)).toEqual(LADDER_1KB);
+  });
+});
+
+describe('rotor k-factor', () => {
+  it('derives the 2.533 × 10^11 constant from first principles', () => {
+    // Thermo Fisher, "Effortlessly transfer centrifugation protocols", Equation 1.
+    expect(K_FACTOR_CONSTANT / 1e11).toBeCloseTo(2.533, 3);
+  });
+
+  it('reproduces Thermo’s protocol transfer: Type 70 Ti to T-865 at 100,000 × g', () => {
+    // 70 min in the Type 70 Ti (adjusted k 157) becomes 157.9 × 70 / 157 = 70.4 min.
+    expect(transferRunTime(70, 157, 157.9)).toBeCloseTo(70.4, 1);
+  });
+
+  it('adjusts a rotor’s k for running below its rated speed', () => {
+    // Type 70 Ti: k 44 at 70,000 rpm; run at 36,914 rpm for 100,000 × g. Thermo gives 157
+    // from the rotor's exact radii; scaling the rounded 44 gives 158, within 1%.
+    const adjusted = kAtSpeed(44, 70000, 36914);
+    expect(Math.abs(adjusted - 157) / 157).toBeLessThan(0.01);
+  });
+
+  it('agrees with the speed Thermo quotes for 100,000 × g at the Type 70 Ti’s average radius', () => {
+    // 36,914 rpm at 100,000 × g implies an average radius of 6.56 cm.
+    const r = 100000 / (RCF_CONSTANT * 36914 * 36914);
+    expect(r).toBeCloseTo(6.56, 2);
+    expect(rpmFromRcf(100000, r)).toBeCloseTo(36914, 6);
+  });
+
+  it('k falls with the square of speed and rises with path length', () => {
+    expect(kFactor(4, 9, 30000)).toBeCloseTo(4 * kFactor(4, 9, 60000), 9);
+    expect(kFactor(4, 10, 50000)).toBeGreaterThan(kFactor(4, 9, 50000));
+  });
+
+  it('is consistent between kFactor and kAtSpeed', () => {
+    const k1 = kFactor(3.95, 9.19, 70000);
+    expect(kAtSpeed(k1, 70000, 35000)).toBeCloseTo(kFactor(3.95, 9.19, 35000), 9);
+  });
+
+  it('gives pelleting time in hours as k / s', () => {
+    expect(pelletingHours(44, 22)).toBeCloseTo(2, 12);
+  });
+
+  it('returns 0 for impossible geometry rather than NaN', () => {
+    expect(kFactor(9, 4, 50000)).toBe(0);
+    expect(kFactor(0, 4, 50000)).toBe(0);
+    expect(transferRunTime(70, 0, 100)).toBe(0);
   });
 });
