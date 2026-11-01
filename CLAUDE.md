@@ -35,6 +35,15 @@ lithium, whose commercial material is isotopically depleted — 6.9675 against a
 6.94. The eighteen spot-checks in the test did not include lithium. Interval elements now
 use CIAAW's conventional values, and the test asserts all fifteen exactly.
 
+**Popular rules are often misattributed.** "MIQE requires 90–110% efficiency and
+R² > 0.98" appears on many sites; MIQE 2.0 (Bustin et al., Clin Chem 2025) endorses
+neither, and asks for a confidence interval on the efficiency instead. Read the guideline
+itself before encoding a threshold as pass/fail. Likewise a 100 mm dish has 56.7 cm² of
+growth area, not the 78.5 cm² that π × 5² gives — 100 mm is the outer diameter.
+
+Where reputable sources disagree — agarose separation ranges, the tetracycline solvent —
+keep each source's value and show both. Averaging them invents a number nobody published.
+
 Independent implementations are the cheapest way to check a whole table at once. Biopython
 implements the same published methods for Tm, restriction digestion and protein
 properties, and `molmass` for formula weights; comparing against them across a few hundred
@@ -54,6 +63,12 @@ lib/            pure, tested calculation modules — no React
   formula.ts    CIAAW/NIST atomic weights, formula parsing (nesting, hydrates), mass percent
   protein.ts    residue masses derived from formula.ts, pI, extinction coefficient, GRAVY
   buffers.ts    NIST ionization thermodynamics; pKa at any temperature, recipes
+  qpcr.ts       standard-curve regression with a CI on efficiency, Pfaffl, 2^-ΔΔCq
+  culture.ts    vessel growth areas (Thermo Gibco), seeding, scale-up, split ratios
+  oligo.ts      nearest-neighbour ε260 (TriLink table), OD/nmol/µg, resuspension
+  media.ts      antibiotic stocks (Addgene, Gold Biotechnology), selection agents
+  growth.ts     OD600 growth rate, doubling time, time-to-OD, back-dilution
+  agarose.ts    separation ranges per source (Sambrook 2012, Ausubel 1995), dye sizes
   *.test.ts     vitest, asserting published reference values
 pages/          one component per tool; UI only, imports the maths from lib/
 components/     UI.tsx (Card/Input/Button/Select), ToolArt.tsx, ScienceIcons.tsx, Layout

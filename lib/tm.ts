@@ -37,6 +37,18 @@ export const NN_INIT_AT = { dH: 2.3, dS: 4.1 };
 const BASE_MW = { A: 313.2, C: 289.2, G: 329.2, T: 304.2 } as const;
 const OLIGO_MW_OFFSET = -61.96;
 
+/**
+ * Molecular weight of a single-stranded DNA oligo with a 5'-OH, in g/mol: the sum of the
+ * nucleotide residue masses less 61.96 for the 5' phosphate the strand does not carry.
+ * Matches TriLink's worked example (AGCTAAGTCACTGCCATTGA, 6101.0 g/mol).
+ */
+export const oligoMolecularWeight = (cleanSeq: string): number => {
+  if (!cleanSeq) return 0;
+  let mw = OLIGO_MW_OFFSET;
+  for (const base of cleanSeq) mw += BASE_MW[base as keyof typeof BASE_MW] ?? 0;
+  return mw;
+};
+
 export interface SaltConditions {
   /** Na+ / K+, mM. */
   monovalentMM: number;
@@ -93,8 +105,7 @@ export const calculatePrimerProps = (
   const n = (re: RegExp) => (cleanSeq.match(re) || []).length;
   const g = n(/G/g), c = n(/C/g), a = n(/A/g), t = n(/T/g);
   const gc = ((g + c) / length) * 100;
-  const molecularWeight =
-    a * BASE_MW.A + c * BASE_MW.C + g * BASE_MW.G + t * BASE_MW.T + OLIGO_MW_OFFSET;
+  const molecularWeight = oligoMolecularWeight(cleanSeq);
 
   // Wallace rule below 14 nt, salt-adjusted GC formula above it.
   const tmBasic = length < 14 ? (a + t) * 2 + (g + c) * 4 : 64.9 + (41 * (g + c - 16.4)) / length;

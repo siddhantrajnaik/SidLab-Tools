@@ -275,6 +275,74 @@ export const BufferArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
   </Frame>
 );
 
+/** qPCR — sigmoid amplification curves crossing a threshold line. */
+export const QpcrArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M12 80h72M12 80V12" stroke={accent} strokeWidth="4" opacity="0.35" />
+    <path d="M14 78c14 0 18-2 24-22s12-30 40-32" fill="none" stroke={tint} strokeWidth="10" />
+    <path d="M14 78c14 0 18-2 24-22s12-30 40-32" fill="none" stroke={accent} strokeWidth="4" />
+    <path d="M14 78c22 0 28-2 34-20s12-26 32-28" fill="none" stroke={accent} strokeWidth="3.5" opacity="0.5" />
+    <path d="M12 52h72" stroke={accent} strokeWidth="3" strokeDasharray="5 5" />
+  </Frame>
+);
+
+/** Cell seeding — a multiwell plate with a few wells seeded. */
+export const SeedingArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <rect x="10" y="20" width="76" height="56" rx="8" fill={tint} stroke={accent} strokeWidth="4" />
+    {[0, 1, 2].map(row => [0, 1, 2, 3].map(col => (
+      <circle key={`${row}-${col}`} cx={24 + col * 16} cy={34 + row * 14} r="5.5"
+        fill={(row + col) % 3 === 0 ? accent : 'none'} stroke={accent} strokeWidth="3" />
+    )))}
+  </Frame>
+);
+
+/** Oligo resuspension — a primer tube with a pellet and buffer going in. */
+export const OligoArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M34 30h28v34a14 14 0 0 1-28 0z" fill={tint} stroke={accent} strokeWidth="4" />
+    <rect x="30" y="22" width="36" height="9" rx="3" fill={accent} />
+    <ellipse cx="48" cy="72" rx="7" ry="4" fill={accent} />
+    <path d="M48 4c0 0-6 8-6 12a6 6 0 0 0 12 0c0-4-6-12-6-12z" fill={accent} />
+  </Frame>
+);
+
+/** Antibiotic stocks — a capsule over an agar plate. */
+export const AntibioticArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <ellipse cx="48" cy="68" rx="36" ry="14" fill={tint} stroke={accent} strokeWidth="4" />
+    <g transform="rotate(-35 48 34)">
+      <rect x="26" y="24" width="44" height="20" rx="10" fill="none" stroke={accent} strokeWidth="4" />
+      <path d="M48 24h12a10 10 0 0 1 0 20H48z" fill={accent} />
+    </g>
+  </Frame>
+);
+
+/** Bacterial growth — a growth curve rising out of lag into log phase. */
+export const GrowthArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <path d="M12 80h72M12 80V12" stroke={accent} strokeWidth="4" opacity="0.35" />
+    <path d="M14 74c16 0 18-2 26-18s14-34 40-36" fill="none" stroke={tint} strokeWidth="11" />
+    <path d="M14 74c16 0 18-2 26-18s14-34 40-36" fill="none" stroke={accent} strokeWidth="4" />
+    <ellipse cx="64" cy="58" rx="9" ry="5" fill={accent} transform="rotate(-30 64 58)" />
+    <ellipse cx="74" cy="68" rx="7" ry="4" fill={accent} opacity="0.6" transform="rotate(20 74 68)" />
+  </Frame>
+);
+
+/** Agarose gel — wells along the top and bands down each lane. */
+export const AgaroseArt: React.FC<ArtProps> = ({ accent, tint, className }) => (
+  <Frame className={className}>
+    <rect x="12" y="12" width="72" height="72" rx="8" fill={tint} stroke={accent} strokeWidth="4" />
+    {[24, 42, 60].map(x => <rect key={x} x={x} y="20" width="12" height="5" rx="1.5" fill={accent} opacity="0.5" />)}
+    <rect x="24" y="36" width="12" height="4" rx="2" fill={accent} />
+    <rect x="24" y="52" width="12" height="4" rx="2" fill={accent} />
+    <rect x="24" y="66" width="12" height="4" rx="2" fill={accent} />
+    <rect x="42" y="44" width="12" height="4" rx="2" fill={accent} />
+    <rect x="60" y="40" width="12" height="4" rx="2" fill={accent} />
+    <rect x="60" y="60" width="12" height="4" rx="2" fill={accent} />
+  </Frame>
+);
+
 /** The brand mark: a flask whose body is the "S" of Sidlab. */
 export const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" className={className} fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

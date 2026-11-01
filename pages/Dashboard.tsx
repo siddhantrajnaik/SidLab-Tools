@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Disc3, Droplets, Link2, ArrowLeftRight, Scale, Atom, Thermometer } from 'lucide-react';
+import { Search, Disc3, Droplets, Link2, ArrowLeftRight, Scale, Atom, Thermometer, LineChart, Grid3x3, TestTube, Pill, TrendingUp, Rows } from 'lucide-react';
 import { DilutionIcon, MolarityIcon, PercentIcon, PhIcon, ProteinIcon, ProtocolsIcon, OopsIcon, PrimerIcon, GelIcon, CellIcon, LogIcon, TimerIcon, FastaIcon, ScissorsIcon, IllustratorIcon } from '../components/ScienceIcons';
-import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt, MolWeightArt, ProteinPropsArt, BufferArt } from '../components/ToolArt';
+import { DilutionArt, MolarityArt, PercentArt, PhArt, ProteinArt, ProtocolsArt, OopsArt, PrimerArt, GelArt, CellArt, LogArt, TimerArt, FastaArt, ScissorsArt, IllustratorArt, CentrifugeArt, NucleicArt, LigationArt, SeqArt, MolWeightArt, ProteinPropsArt, BufferArt, QpcrArt, SeedingArt, OligoArt, AntibioticArt, GrowthArt, AgaroseArt } from '../components/ToolArt';
 import { BrandMark } from '../components/ToolArt';
 import type { ArtProps } from '../components/ToolArt';
 
@@ -19,6 +19,36 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
+  {
+    id: 'qpcr', title: 'qPCR Analysis', description: 'Efficiency, Pfaffl & ΔΔCq',
+    path: '/qpcr', icon: LineChart, art: QpcrArt, color: 'violet',
+    keywords: ['qpcr', 'real-time pcr', 'rt-qpcr', 'efficiency', 'standard curve', 'ddct', 'delta delta ct', 'cq', 'ct', 'pfaffl', 'fold change', 'gene expression', 'miqe']
+  },
+  {
+    id: 'seeding', title: 'Cell Seeding', description: 'Seeding, scale-up & split ratios',
+    path: '/seeding', icon: Grid3x3, art: SeedingArt, color: 'pink',
+    keywords: ['cell culture', 'seeding', 'plate', 'well', 'flask', 'dish', 'confluency', 'split', 'passage', 'density', 't75', '96 well', 'tissue culture']
+  },
+  {
+    id: 'oligo', title: 'Oligo Resuspension', description: 'nmol, OD, µg & buffer volume',
+    path: '/oligo', icon: TestTube, art: OligoArt, color: 'indigo',
+    keywords: ['oligo', 'primer', 'resuspend', 'resuspension', 'nmol', 'od260', 'extinction coefficient', '100 um', 'stock', 'te buffer', 'idt']
+  },
+  {
+    id: 'antibiotics', title: 'Antibiotic Stocks', description: 'Working conc. & how much to add',
+    path: '/antibiotics', icon: Pill, art: AntibioticArt, color: 'cyan',
+    keywords: ['antibiotic', 'ampicillin', 'kanamycin', 'chloramphenicol', 'carbenicillin', 'tetracycline', 'spectinomycin', 'selection', 'puromycin', 'stock', 'plates', 'lb']
+  },
+  {
+    id: 'growth', title: 'Bacterial Growth', description: 'Doubling time & back-dilution',
+    path: '/growth', icon: TrendingUp, art: GrowthArt, color: 'lime',
+    keywords: ['od600', 'growth', 'doubling time', 'growth rate', 'e. coli', 'culture', 'induction', 'back dilution', 'overnight', 'cells per ml']
+  },
+  {
+    id: 'agarose', title: 'Agarose Gel', description: 'Gel %, recipe & dye positions',
+    path: '/agarose', icon: Rows, art: AgaroseArt, color: 'orange',
+    keywords: ['agarose', 'gel', 'electrophoresis', 'percentage', 'tae', 'tbe', 'bromophenol blue', 'xylene cyanol', 'fragment size', 'dna gel', 'resolution']
+  },
   {
     id: 'buffers',
     title: 'Buffer Selector',

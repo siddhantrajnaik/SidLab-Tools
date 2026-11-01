@@ -25,6 +25,12 @@ import SeqToolkit from './pages/SeqToolkit';
 import MolWeight from './pages/MolWeight';
 import ProteinProps from './pages/ProteinProps';
 import BufferSelector from './pages/BufferSelector';
+import QpcrCalculator from './pages/QpcrCalculator';
+import SeedingCalculator from './pages/SeedingCalculator';
+import OligoResuspension from './pages/OligoResuspension';
+import MediaStocks from './pages/MediaStocks';
+import GrowthCalculator from './pages/GrowthCalculator';
+import AgaroseGel from './pages/AgaroseGel';
 
 const App: React.FC = () => {
   // The removed ad panel stored banner images as base64 in localStorage, up to 2 MB per
@@ -69,6 +75,12 @@ const App: React.FC = () => {
           <Route path="/molweight" element={<MolWeight />} />
           <Route path="/proteinprops" element={<ProteinProps />} />
           <Route path="/buffers" element={<BufferSelector />} />
+          <Route path="/qpcr" element={<QpcrCalculator />} />
+          <Route path="/seeding" element={<SeedingCalculator />} />
+          <Route path="/oligo" element={<OligoResuspension />} />
+          <Route path="/antibiotics" element={<MediaStocks />} />
+          <Route path="/growth" element={<GrowthCalculator />} />
+          <Route path="/agarose" element={<AgaroseGel />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
